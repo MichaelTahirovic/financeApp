@@ -19,6 +19,11 @@ import {
   type HistoryCell,
 } from "./history-builders";
 
+/** Compact month label for history columns: "01/26" (month number / 2-digit year). */
+function monthNum(month: string): string {
+  return `${month.slice(5, 7)}/${month.slice(2, 4)}`;
+}
+
 const MONTH_OPTIONS = [1, 3, 6, 12];
 
 export default function ExportClient({ data }: { data: ExportData }) {
@@ -110,7 +115,7 @@ export default function ExportClient({ data }: { data: ExportData }) {
     // History tables (months as columns)
     pushSection(
       "Accounts Receivable History",
-      ["Record", ...accHist.months],
+      ["Record", ...accHist.months.map(monthNum)],
       [
         ...accHist.receivableRows.map((r) => [r.label, ...r.values.map((v) => (v === null ? "" : v))] as (string | number)[]),
         ["Total Receivable", ...accHist.totalReceivable],
@@ -119,7 +124,7 @@ export default function ExportClient({ data }: { data: ExportData }) {
     );
     pushSection(
       "Accounts Payable History",
-      ["Record", ...accHist.months],
+      ["Record", ...accHist.months.map(monthNum)],
       [
         ...accHist.payableRows.map((r) => [r.label, ...r.values.map((v) => (v === null ? "" : v))] as (string | number)[]),
         ["Total Payable", ...accHist.totalPayable],
@@ -127,7 +132,7 @@ export default function ExportClient({ data }: { data: ExportData }) {
     );
     pushSection(
       "Income History",
-      ["Record", ...itemHist.months],
+      ["Record", ...itemHist.months.map(monthNum)],
       [
         ...itemHist.incomeRows.map((r) => [r.label, ...r.values.map((v) => (v === null ? "" : v))] as (string | number)[]),
         ["Total Income", ...itemHist.totalIncome],
@@ -136,7 +141,7 @@ export default function ExportClient({ data }: { data: ExportData }) {
     );
     pushSection(
       "Payments History",
-      ["Record", ...itemHist.months],
+      ["Record", ...itemHist.months.map(monthNum)],
       [
         ...itemHist.paymentRows.map((r) => [r.label, ...r.values.map((v) => (v === null ? "" : v))] as (string | number)[]),
         ["Total Payments", ...itemHist.totalPayments],
@@ -144,7 +149,7 @@ export default function ExportClient({ data }: { data: ExportData }) {
     );
     pushSection(
       "Budgets History",
-      ["Budget", "Limit", ...budHist.months],
+      ["Budget", "Limit", ...budHist.months.map(monthNum)],
       budHist.rows.map((r) => [r.label, r.limit, ...r.spent.map((v) => (v === null ? "" : v))])
     );
 
@@ -302,7 +307,7 @@ export default function ExportClient({ data }: { data: ExportData }) {
                 <th>Budget</th>
                 <th>Limit</th>
                 {budHist.months.map((m) => (
-                  <th key={m}>{monthLabel(m)}</th>
+                  <th key={m}>{monthNum(m)}</th>
                 ))}
               </tr>
             </thead>
@@ -387,7 +392,7 @@ function HistoryReportTable({
         <tr>
           <th>Record</th>
           {months.map((m) => (
-            <th key={m}>{monthLabel(m)}</th>
+            <th key={m}>{monthNum(m)}</th>
           ))}
         </tr>
       </thead>

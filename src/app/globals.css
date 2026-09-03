@@ -45,11 +45,10 @@ html.dark .btn-primary {
   color: #000;
 }
 
-/* Print / PDF report: landscape so the 12-month history tables fit, white
-   background, restricted palette (black, grey, white, green, red), and hide
-   interactive controls. */
+/* Print / PDF report: portrait pages, white background, restricted palette
+   (black, grey, white, green, red), and hide interactive controls. */
 @page {
-  size: landscape;
+  size: portrait;
   margin: 0.5in;
 }
 
