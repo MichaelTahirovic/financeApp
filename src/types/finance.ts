@@ -8,6 +8,8 @@ export interface FlowAccount {
   amount: number;
   is_annual_subscription: boolean;
   annual_amount: number | null;
+  hidden: boolean;
+  sort_order: number | null;
   created_at: string;
 }
 

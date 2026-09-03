@@ -26,6 +26,7 @@ export default function AccountEditForm({
 }) {
   const router = useRouter();
   const [currentValue, setCurrentValue] = useState(String(account.amount));
+  const [hidden, setHidden] = useState(account.hidden);
   // Months that exist in the DB when the editor opens — used to detect removals.
   const [initialMonths] = useState<string[]>(history.map((h) => h.month.slice(0, 7)));
   const [rows, setRows] = useState<HistoryDraft[]>(
@@ -113,7 +114,7 @@ export default function AccountEditForm({
 
     const { error: updateError } = await supabase
       .from("flow_accounts")
-      .update({ amount: Number(currentValue) || 0 })
+      .update({ amount: Number(currentValue) || 0, hidden })
       .eq("id", account.id);
 
     if (updateError) {
@@ -139,6 +140,15 @@ export default function AccountEditForm({
           onChange={(e) => setCurrentValue(e.target.value)}
           className="w-32 rounded border px-2 py-1"
         />
+      </label>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={hidden}
+          onChange={(e) => setHidden(e.target.checked)}
+        />
+        Hide this account (keeps it saved but off the Accounts page and history chart)
       </label>
 
       <div className="flex flex-col gap-1">

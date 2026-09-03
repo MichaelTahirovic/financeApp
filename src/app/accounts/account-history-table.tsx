@@ -1,4 +1,5 @@
 import {
+  bySortOrder,
   currentMonth,
   effectiveMonthlyAmount,
   formatCurrency,
@@ -34,8 +35,8 @@ export default function AccountHistoryTable({
     months.unshift(shiftMonth(months[0], -1));
   }
 
-  const receivables = accounts.filter((a) => a.kind === "receivable");
-  const payables = accounts.filter((a) => a.kind === "payable");
+  const receivables = bySortOrder(accounts.filter((a) => a.kind === "receivable"));
+  const payables = bySortOrder(accounts.filter((a) => a.kind === "payable"));
 
   /** Raw stored value for a cell (positive), or null when unrecorded. */
   function rawValue(account: FlowAccount, month: string): number | null {

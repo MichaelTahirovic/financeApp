@@ -2,16 +2,19 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SectionBox } from "@/components/section-box";
 import {
+  bySortOrder,
   currentMonth,
   formatCurrency,
   netWorth,
   payableTotal,
   receivableTotal,
+  visibleAccounts,
 } from "@/lib/finance/calculations";
 import type { AccountHistory, FlowAccount } from "@/types/finance";
 import AccountListItem from "./account-list-item";
 import AccountHistoryTable from "./account-history-table";
 import AddAccountToggle from "./add-account-toggle";
+import HiddenAccounts from "./hidden-accounts";
 
 export default async function AccountsPage() {
   const supabase = await createClient();
@@ -28,11 +31,15 @@ export default async function AccountsPage() {
   const accountList = (accounts ?? []) as FlowAccount[];
   const historyList = (history ?? []) as AccountHistory[];
 
-  const receivables = accountList.filter((a) => a.kind === "receivable");
-  const payables = accountList.filter((a) => a.kind === "payable");
+  const visible = visibleAccounts(accountList);
+  const hidden = accountList.filter((a) => a.hidden);
+
+  const receivables = bySortOrder(visible.filter((a) => a.kind === "receivable"));
+  const payables = bySortOrder(visible.filter((a) => a.kind === "payable"));
 
   const now = currentMonth();
-  const worth = netWorth(accountList);
+  // Totals/net worth reflect only visible accounts.
+  const worth = netWorth(visible);
 
   return (
     <main className="relative mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
@@ -50,16 +57,17 @@ export default async function AccountsPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <SectionBox title="Accounts Receivable" total={receivableTotal(accountList)}>
+        <SectionBox title="Accounts Receivable" total={receivableTotal(visible)}>
           <AccountList accounts={receivables} history={historyList} now={now} />
+          <HiddenAccounts hidden={hidden} />
         </SectionBox>
 
-        <SectionBox title="Accounts Payable" total={payableTotal(accountList)}>
+        <SectionBox title="Accounts Payable" total={payableTotal(visible)}>
           <AccountList accounts={payables} history={historyList} now={now} payable />
         </SectionBox>
       </div>
 
-      <AccountHistoryTable accounts={accountList} history={historyList} />
+      <AccountHistoryTable accounts={visible} history={historyList} />
     </main>
   );
 }
@@ -80,8 +88,16 @@ function AccountList({
   }
   return (
     <ul className="flex flex-col gap-2 py-1">
-      {accounts.map((a) => (
-        <AccountListItem key={a.id} account={a} history={history} payable={payable} now={now} />
+      {accounts.map((a, i) => (
+        <AccountListItem
+          key={a.id}
+          account={a}
+          history={history}
+          payable={payable}
+          now={now}
+          siblings={accounts}
+          index={i}
+        />
       ))}
     </ul>
   );

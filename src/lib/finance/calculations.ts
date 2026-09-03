@@ -61,6 +61,19 @@ export function effectiveMonthlyAmount(account: FlowAccount): number {
   return Number(account.amount);
 }
 
+/** Accounts that are not hidden — shown in cards, totals, and the history table. */
+export function visibleAccounts(accounts: FlowAccount[]): FlowAccount[] {
+  return accounts.filter((a) => !a.hidden);
+}
+
+/** Sort accounts by their persisted per-kind order, falling back to creation order. */
+export function bySortOrder(accounts: FlowAccount[]): FlowAccount[] {
+  return [...accounts].sort((a, b) => {
+    const so = (a.sort_order ?? Number.MAX_SAFE_INTEGER) - (b.sort_order ?? Number.MAX_SAFE_INTEGER);
+    return so !== 0 ? so : a.created_at.localeCompare(b.created_at);
+  });
+}
+
 export function receivableTotal(accounts: FlowAccount[]): number {
   return accounts
     .filter((a) => a.kind === "receivable")
