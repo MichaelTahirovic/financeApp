@@ -45,6 +45,23 @@ export default function BudgetForm({
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!budget) return;
+    if (!window.confirm(`Delete the budget "${budget.name}"? Purchases assigned to it will also be removed. This cannot be undone.`)) return;
+    setDeleting(true);
+    setError(null);
+    const supabase = createClient();
+    const { error } = await supabase.from("budgets").delete().eq("id", budget.id);
+    setDeleting(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    if (onClose) onClose();
+    router.refresh();
+  }
 
   function addType() {
     setTypes([...types, { name: "", color: colorForName(`type-${types.length}-${Date.now()}`) }]);
@@ -310,13 +327,23 @@ export default function BudgetForm({
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
         <button type="submit" disabled={saving} className="btn-primary px-3 py-2">
           {saving ? "Saving..." : budget ? "Save Budget" : "Add Budget"}
         </button>
         {onClose && (
           <button type="button" onClick={onClose} className="rounded border px-3 py-2 text-sm">
             Cancel
+          </button>
+        )}
+        {budget && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="ml-auto rounded border border-red-600 px-3 py-2 text-sm text-red-600 hover:bg-red-600 hover:text-white disabled:opacity-50"
+          >
+            {deleting ? "Deleting..." : "Delete"}
           </button>
         )}
       </div>

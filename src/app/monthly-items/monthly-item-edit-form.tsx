@@ -44,6 +44,22 @@ export default function MonthlyItemEditForm({
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!window.confirm(`Delete "${item.name}" and all its history? This cannot be undone.`)) return;
+    setDeleting(true);
+    setError(null);
+    const supabase = createClient();
+    const { error } = await supabase.from(table).delete().eq("id", item.id);
+    setDeleting(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    onClose();
+    router.refresh();
+  }
 
   function updateRow(index: number, field: keyof HistoryDraft, value: string) {
     const next = [...rows];
@@ -234,12 +250,20 @@ export default function MonthlyItemEditForm({
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
         <button type="submit" disabled={saving} className="btn-primary px-3 py-1 text-xs">
           {saving ? "Saving..." : "Save"}
         </button>
         <button type="button" onClick={onClose} className="rounded border px-3 py-1 text-xs">
           Cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          className="ml-auto rounded border border-red-600 px-3 py-1 text-xs text-red-600 hover:bg-red-600 hover:text-white disabled:opacity-50"
+        >
+          {deleting ? "Deleting..." : "Delete"}
         </button>
       </div>
     </form>
