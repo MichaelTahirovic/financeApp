@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SectionBox } from "@/components/section-box";
-import { formatCurrency, monthLabel } from "@/lib/finance/calculations";
+import { formatCurrency } from "@/lib/finance/calculations";
 import type {
   IncomeHistory,
   IncomeItem,
@@ -10,6 +10,8 @@ import type {
 } from "@/types/finance";
 import AddMonthlyItemToggle from "./add-item-toggle";
 import MonthlyItemsTable from "./monthly-items-table";
+import MonthlyItemListItem from "./monthly-item-list-item";
+import HiddenMonthlyItems from "./hidden-items";
 
 export default async function MonthlyItemsPage() {
   const supabase = await createClient();
@@ -30,10 +32,15 @@ export default async function MonthlyItemsPage() {
     supabase.from("subscription_history").select("*").order("month", { ascending: false }),
   ]);
 
-  const incomeList = (incomeItems ?? []) as IncomeItem[];
+  const allIncome = (incomeItems ?? []) as IncomeItem[];
   const incomeHist = (incomeHistory ?? []) as IncomeHistory[];
-  const subList = (subscriptions ?? []) as Subscription[];
+  const allSubs = (subscriptions ?? []) as Subscription[];
   const subHist = (subscriptionHistory ?? []) as SubscriptionHistory[];
+
+  const incomeList = allIncome.filter((i) => !i.hidden);
+  const subList = allSubs.filter((s) => !s.hidden);
+  const hiddenIncome = allIncome.filter((i) => i.hidden);
+  const hiddenSubs = allSubs.filter((s) => s.hidden);
 
   const incomeTotal = incomeList.reduce((sum, i) => sum + Number(i.amount), 0);
   const subTotal = subList.reduce((sum, s) => sum + Number(s.amount), 0);
@@ -64,8 +71,12 @@ export default async function MonthlyItemsPage() {
             <ItemList
               items={incomeList}
               emptyText="No income items yet."
-              historyOf={(id) => incomeHist.filter((h) => h.income_id === id)}
+              table="income_items"
+              historyTable="income_history"
+              historyFk="income_id"
+              allHistory={incomeHist}
             />
+            <HiddenMonthlyItems items={hiddenIncome} table="income_items" />
           </SectionBox>
         </div>
 
@@ -81,9 +92,13 @@ export default async function MonthlyItemsPage() {
             <ItemList
               items={subList}
               emptyText="No subscriptions yet."
-              historyOf={(id) => subHist.filter((h) => h.subscription_id === id)}
+              table="subscriptions"
+              historyTable="subscription_history"
+              historyFk="subscription_id"
+              allHistory={subHist}
               negative
             />
+            <HiddenMonthlyItems items={hiddenSubs} table="subscriptions" />
           </SectionBox>
         </div>
       </div>
@@ -101,12 +116,18 @@ export default async function MonthlyItemsPage() {
 function ItemList({
   items,
   emptyText,
-  historyOf,
+  table,
+  historyTable,
+  historyFk,
+  allHistory,
   negative,
 }: {
   items: (IncomeItem | Subscription)[];
   emptyText: string;
-  historyOf: (id: string) => { id: string; month: string; amount: number }[];
+  table: "income_items" | "subscriptions";
+  historyTable: "income_history" | "subscription_history";
+  historyFk: "income_id" | "subscription_id";
+  allHistory: (IncomeHistory | SubscriptionHistory)[];
   negative?: boolean;
 }) {
   if (items.length === 0) {
@@ -114,36 +135,23 @@ function ItemList({
   }
   return (
     <ul className="flex flex-col gap-2 py-1">
-      {items.map((item) => (
-        <li key={item.id} className="rounded border px-3 py-2 text-sm">
-          <div className="flex justify-between">
-            <span>
-              {item.name}
-              {item.is_recurring && (
-                <span className="ml-1 text-xs text-gray-500">(recurring)</span>
-              )}
-            </span>
-            <span className={negative ? "text-red-600" : ""}>
-              {formatCurrency(Number(item.amount))}
-            </span>
-          </div>
-          <HistoryList entries={historyOf(item.id)} />
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function HistoryList({ entries }: { entries: { id: string; month: string; amount: number }[] }) {
-  if (entries.length === 0) return null;
-  return (
-    <ul className="mt-1 text-xs text-gray-500">
-      {entries.map((h) => (
-        <li key={h.id} className="flex justify-between">
-          <span>{monthLabel(h.month.slice(0, 7))}</span>
-          <span>{formatCurrency(Number(h.amount))}</span>
-        </li>
-      ))}
+      {items.map((item) => {
+        const key = table === "income_items" ? "income_id" : "subscription_id";
+        const entries = allHistory
+          .filter((h) => (h as unknown as Record<string, string>)[key] === item.id)
+          .map((h) => ({ id: h.id, month: h.month, amount: Number(h.amount) }));
+        return (
+          <MonthlyItemListItem
+            key={item.id}
+            item={item}
+            history={entries}
+            table={table}
+            historyTable={historyTable}
+            historyFk={historyFk}
+            negative={negative}
+          />
+        );
+      })}
     </ul>
   );
 }

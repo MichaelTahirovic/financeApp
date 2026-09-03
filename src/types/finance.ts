@@ -28,6 +28,7 @@ export interface IncomeItem {
   name: string;
   amount: number;
   is_recurring: boolean;
+  hidden: boolean;
   created_at: string;
 }
 
@@ -46,6 +47,7 @@ export interface Subscription {
   name: string;
   amount: number;
   is_recurring: boolean;
+  hidden: boolean;
   created_at: string;
 }
 

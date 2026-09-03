@@ -143,7 +143,7 @@ export function monthlySpend(
   const subscriptionTotal =
     historyForMonth.reduce((sum, h) => sum + Number(h.amount), 0) +
     subscriptions
-      .filter((s) => !withHistory.has(s.id))
+      .filter((s) => !s.hidden && !withHistory.has(s.id))
       .reduce((sum, s) => sum + Number(s.amount), 0);
 
   return purchaseTotal + subscriptionTotal;
@@ -164,7 +164,7 @@ export function monthlyRevenue(
   return (
     historyForMonth.reduce((sum, h) => sum + Number(h.amount), 0) +
     incomeItems
-      .filter((i) => !withHistory.has(i.id))
+      .filter((i) => !i.hidden && !withHistory.has(i.id))
       .reduce((sum, i) => sum + Number(i.amount), 0)
   );
 }
