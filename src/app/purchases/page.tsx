@@ -52,7 +52,7 @@ export default async function PurchasesPage() {
       {expenseList.length === 0 ? (
         <p className="text-sm text-gray-500">No purchases logged yet.</p>
       ) : (
-        <PurchaseSelectionProvider budgets={budgetList} purchaseTypes={typeList}>
+        <PurchaseSelectionProvider budgets={budgetList} purchaseTypes={typeList} expenses={expenseList}>
           {months.map((month) => (
             <section key={month} className="rounded border">
               <h2 className="sticky top-14 z-10 border-b bg-background px-4 py-2 text-lg font-medium">

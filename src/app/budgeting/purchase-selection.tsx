@@ -9,7 +9,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { Budget, PurchaseType } from "@/types/finance";
+import type { Budget, Expense, PurchaseType } from "@/types/finance";
 
 interface SelectionState {
   selected: Set<string>;
@@ -34,10 +34,12 @@ export function usePurchaseSelection() {
 export function PurchaseSelectionProvider({
   budgets,
   purchaseTypes,
+  expenses,
   children,
 }: {
   budgets: Budget[];
   purchaseTypes: PurchaseType[];
+  expenses: Expense[];
   children: ReactNode;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -57,11 +59,24 @@ export function PurchaseSelectionProvider({
     [selected]
   );
 
+  // The distinct budgets the selected entries belong to. Used to scope the
+  // purchase-type dropdown and to disable it when the selection spans budgets.
+  const selectedBudgetIds = useMemo(() => {
+    const ids = new Set(
+      expenses.filter((e) => selected.has(e.id)).map((e) => e.budget_id)
+    );
+    return [...ids];
+  }, [expenses, selected]);
+
   return (
     <SelectionContext.Provider value={state}>
       {children}
       {selected.size > 0 && (
-        <BulkActionBar budgets={budgets} purchaseTypes={purchaseTypes} />
+        <BulkActionBar
+          budgets={budgets}
+          purchaseTypes={purchaseTypes}
+          selectedBudgetIds={selectedBudgetIds}
+        />
       )}
     </SelectionContext.Provider>
   );
@@ -70,9 +85,11 @@ export function PurchaseSelectionProvider({
 function BulkActionBar({
   budgets,
   purchaseTypes,
+  selectedBudgetIds,
 }: {
   budgets: Budget[];
   purchaseTypes: PurchaseType[];
+  selectedBudgetIds: string[];
 }) {
   const router = useRouter();
   const { selected, deselectAll } = usePurchaseSelection();
@@ -84,7 +101,13 @@ function BulkActionBar({
   const [targetType, setTargetType] = useState("General");
 
   const ids = [...selected];
-  const typesForTarget = purchaseTypes.filter((t) => t.budget_id === targetBudget);
+
+  // Change Purchase Type only applies when every selected entry shares one budget;
+  // the type dropdown then shows that budget's types.
+  const singleBudget = selectedBudgetIds.length === 1 ? selectedBudgetIds[0] : null;
+  const typesForSelectedBudget = singleBudget
+    ? purchaseTypes.filter((t) => t.budget_id === singleBudget)
+    : [];
 
   async function run(update: Record<string, unknown>, confirmMessage?: string) {
     if (confirmMessage && !window.confirm(confirmMessage)) return;
@@ -140,8 +163,14 @@ function BulkActionBar({
           </button>
           <button
             type="button"
-            onClick={() => { setChangingType((v) => !v); setChangingBudget(false); }}
-            className="rounded border px-2 py-1"
+            onClick={() => { if (singleBudget) { setChangingType((v) => !v); setChangingBudget(false); } }}
+            disabled={!singleBudget}
+            title={
+              singleBudget
+                ? "Change the purchase type of the selected entries"
+                : "Select entries from a single budget to change purchase type"
+            }
+            className="rounded border px-2 py-1 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Change Purchase Type
           </button>
@@ -174,7 +203,7 @@ function BulkActionBar({
           </div>
         )}
 
-        {changingType && (
+        {changingType && singleBudget && (
           <div className="flex flex-wrap items-center gap-2">
             <select
               value={targetType}
@@ -182,13 +211,15 @@ function BulkActionBar({
               className="rounded border bg-white px-2 py-1 text-black"
             >
               <option value="General" className="text-black">General</option>
-              {typesForTarget.map((t) => (
+              {typesForSelectedBudget.map((t) => (
                 <option key={t.id} value={t.name} className="text-black">
                   {t.name}
                 </option>
               ))}
             </select>
-            <span className="text-xs text-gray-500">(types of the chosen budget)</span>
+            <span className="text-xs text-gray-500">
+              (types of {budgets.find((b) => b.id === singleBudget)?.name ?? "the selected budget"})
+            </span>
             <button
               type="button"
               disabled={busy}

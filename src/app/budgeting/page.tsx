@@ -99,7 +99,7 @@ export default async function BudgetingPage() {
           <ExpenseForm budgets={budgetList} purchaseTypes={typeList} />
         </CardAddToggle>
         <h2 className="border-b px-4 py-2 text-lg font-medium">Recent Purchases</h2>
-        <PurchaseSelectionProvider budgets={budgetList} purchaseTypes={typeList}>
+        <PurchaseSelectionProvider budgets={budgetList} purchaseTypes={typeList} expenses={recent}>
           <RecentPurchases expenses={recent} budgets={budgetList} purchaseTypes={typeList} />
         </PurchaseSelectionProvider>
       </section>
