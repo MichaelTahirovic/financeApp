@@ -45,61 +45,112 @@ export default function ExportClient({ data }: { data: ExportData }) {
   const budHist = budgetsHistory(data, monthCount);
 
   // ---------- Excel ----------
+  // Everything goes on the first sheet ("Summary"); monthly purchases go on a
+  // second sheet ("Purchases").
   function exportExcel() {
     const wb = XLSX.utils.book_new();
 
-    const sheetFrom = (rows: (string | number)[][], name: string) =>
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), name);
+    const blank: (string | number)[] = [""];
+    const summary: (string | number)[][] = [];
+
+    const pushSection = (title: string, head: (string | number)[], body: (string | number)[][]) => {
+      summary.push([title], head, ...body, blank);
+    };
 
     // Accounts Receivable / Payable (split, with totals)
-    const accSheet = (list: typeof data.accounts, total: number, title: string) => {
-      const rows: (string | number)[][] = [
-        [title],
-        ["Name", "Amount", "Monthly Amount", "Annual Payment", "Annual Amount", "Hidden"],
-        ...list.map((a) => [
+    pushSection(
+      "Accounts Receivable",
+      ["Name", "Amount", "Monthly Amount", "Annual Payment", "Annual Amount", "Hidden"],
+      [
+        ...receivables.map((a) => [
           a.name,
           Number(a.amount),
           Number(a.amount),
           a.is_annual_subscription ? "Yes" : "No",
-          a.annual_amount ?? "",
+          (a.annual_amount ?? "") as string | number,
           a.hidden ? "Yes" : "No",
         ]),
-        ["Total", total, "", "", "", ""],
-      ];
-      sheetFrom(rows, title);
-    };
-    accSheet(receivables, receivableTotal, "Accounts Receivable");
-    accSheet(payables, payableTotal, "Accounts Payable");
+        ["Total", receivableTotal, "", "", "", ""],
+      ]
+    );
+    pushSection(
+      "Accounts Payable",
+      ["Name", "Amount", "Monthly Amount", "Annual Payment", "Annual Amount", "Hidden"],
+      [
+        ...payables.map((a) => [
+          a.name,
+          Number(a.amount),
+          Number(a.amount),
+          a.is_annual_subscription ? "Yes" : "No",
+          (a.annual_amount ?? "") as string | number,
+          a.hidden ? "Yes" : "No",
+        ]),
+        ["Total", payableTotal, "", "", "", ""],
+      ]
+    );
 
     // Monthly Items: Income / Payments with totals
-    const incomeRows: (string | number)[][] = [
-      ["Income"],
+    pushSection(
+      "Income",
       ["Name", "Amount", "Recurring", "Hidden"],
-      ...data.incomeItems.map((i) => [i.name, Number(i.amount), i.is_recurring ? "Yes" : "No", i.hidden ? "Yes" : "No"]),
-      ["Total", incomeTotal, "", ""],
-    ];
-    sheetFrom(incomeRows, "Income");
-    const paymentRows: (string | number)[][] = [
-      ["Payments"],
+      [
+        ...data.incomeItems.map((i) => [i.name, Number(i.amount), i.is_recurring ? "Yes" : "No", i.hidden ? "Yes" : "No"]),
+        ["Total", incomeTotal, "", ""],
+      ]
+    );
+    pushSection(
+      "Payments",
       ["Name", "Amount", "Recurring", "Hidden"],
-      ...data.subscriptions.map((s) => [s.name, Number(s.amount), s.is_recurring ? "Yes" : "No", s.hidden ? "Yes" : "No"]),
-      ["Total", paymentTotal, "", ""],
-    ];
-    sheetFrom(paymentRows, "Payments");
+      [
+        ...data.subscriptions.map((s) => [s.name, Number(s.amount), s.is_recurring ? "Yes" : "No", s.hidden ? "Yes" : "No"]),
+        ["Total", paymentTotal, "", ""],
+      ]
+    );
 
-    // History sheets (months as columns)
-    sheetFrom(historyToAoa(accHist.months, accHist.receivableRows, accHist.totalReceivable, "Total Receivable"), "Accounts Receivable Hist");
-    sheetFrom(historyToAoa(accHist.months, accHist.payableRows, accHist.totalPayable, "Total Payable"), "Accounts Payable Hist");
-    sheetFrom(historyToAoa(itemHist.months, itemHist.incomeRows, itemHist.totalIncome, "Total Income"), "Income History");
-    sheetFrom(historyToAoa(itemHist.months, itemHist.paymentRows, itemHist.totalPayments, "Total Payments"), "Payments History");
-
-    const budRows: (string | number)[][] = [
+    // History tables (months as columns)
+    pushSection(
+      "Accounts Receivable History",
+      ["Record", ...accHist.months],
+      [
+        ...accHist.receivableRows.map((r) => [r.label, ...r.values.map((v) => (v === null ? "" : v))] as (string | number)[]),
+        ["Total Receivable", ...accHist.totalReceivable],
+        ["Net Worth", ...accHist.netWorth],
+      ]
+    );
+    pushSection(
+      "Accounts Payable History",
+      ["Record", ...accHist.months],
+      [
+        ...accHist.payableRows.map((r) => [r.label, ...r.values.map((v) => (v === null ? "" : v))] as (string | number)[]),
+        ["Total Payable", ...accHist.totalPayable],
+      ]
+    );
+    pushSection(
+      "Income History",
+      ["Record", ...itemHist.months],
+      [
+        ...itemHist.incomeRows.map((r) => [r.label, ...r.values.map((v) => (v === null ? "" : v))] as (string | number)[]),
+        ["Total Income", ...itemHist.totalIncome],
+        ["Available Cash Flow", ...itemHist.cashFlow],
+      ]
+    );
+    pushSection(
+      "Payments History",
+      ["Record", ...itemHist.months],
+      [
+        ...itemHist.paymentRows.map((r) => [r.label, ...r.values.map((v) => (v === null ? "" : v))] as (string | number)[]),
+        ["Total Payments", ...itemHist.totalPayments],
+      ]
+    );
+    pushSection(
+      "Budgets History",
       ["Budget", "Limit", ...budHist.months],
-      ...budHist.rows.map((r) => [r.label, r.limit, ...r.spent.map((v) => (v === null ? "" : v))]),
-    ];
-    sheetFrom(budRows, "Budgets History");
+      budHist.rows.map((r) => [r.label, r.limit, ...r.spent.map((v) => (v === null ? "" : v))])
+    );
 
-    // Recent purchases (all)
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), "Summary");
+
+    // Purchases on the second sheet
     const purchaseRows: (string | number)[][] = [
       ["Name", "Budget", "Purchase Type", "Amount", "Date", "Time"],
       ...data.expenses.map((e) => [
@@ -111,25 +162,9 @@ export default function ExportClient({ data }: { data: ExportData }) {
         e.occurred_time ? e.occurred_time.slice(0, 5) : "",
       ]),
     ];
-    sheetFrom(purchaseRows, "Purchases");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(purchaseRows), "Purchases");
 
     XLSX.writeFile(wb, `finance-export-${now}.xlsx`);
-  }
-
-  function historyToAoa(
-    months: string[],
-    rows: HistoryCell[],
-    totals: number[],
-    totalLabel: string
-  ): (string | number)[][] {
-    return [
-      ["Record", ...months],
-      ...rows.map((r) => [
-        r.label,
-        ...r.values.map((v) => (v === null ? "" : v)),
-      ]),
-      [totalLabel, ...totals],
-    ];
   }
 
   return (
