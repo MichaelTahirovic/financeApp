@@ -125,8 +125,8 @@ export function debt(accounts: FlowAccount[]): number {
 
 /**
  * Total spend for a month: logged purchases in that month plus every
- * recurring subscription (auto-counts each month) and that month's
- * subscription history entries (for past months recorded at setup).
+ * subscription (recurring and one-off). For past months, recorded history
+ * entries override their subscription's amount.
  */
 export function monthlySpend(
   month: string,
@@ -138,30 +138,19 @@ export function monthlySpend(
     .filter((e) => inMonth(e.occurred_on, month))
     .reduce((sum, e) => sum + Number(e.amount), 0);
 
-  const isCurrent = month === currentMonth();
-
-  let subscriptionTotal: number;
-  if (isCurrent) {
-    subscriptionTotal = subscriptions
-      .filter((s) => s.is_recurring)
+  const historyForMonth = subscriptionHistory.filter((h) => inMonth(h.month, month));
+  const withHistory = new Set(historyForMonth.map((h) => h.subscription_id));
+  const subscriptionTotal =
+    historyForMonth.reduce((sum, h) => sum + Number(h.amount), 0) +
+    subscriptions
+      .filter((s) => !withHistory.has(s.id))
       .reduce((sum, s) => sum + Number(s.amount), 0);
-  } else {
-    // Past months: use recorded history where present; recurring subs
-    // without a history entry still count at their current amount.
-    const historyForMonth = subscriptionHistory.filter((h) => inMonth(h.month, month));
-    const withHistory = new Set(historyForMonth.map((h) => h.subscription_id));
-    subscriptionTotal =
-      historyForMonth.reduce((sum, h) => sum + Number(h.amount), 0) +
-      subscriptions
-        .filter((s) => s.is_recurring && !withHistory.has(s.id))
-        .reduce((sum, s) => sum + Number(s.amount), 0);
-  }
 
   return purchaseTotal + subscriptionTotal;
 }
 
 /**
- * Total revenue for a month: recurring income auto-counts every month;
+ * Total revenue for a month: every income item counts (recurring and one-off);
  * history entries override their item's amount for past months.
  */
 export function monthlyRevenue(
@@ -175,7 +164,7 @@ export function monthlyRevenue(
   return (
     historyForMonth.reduce((sum, h) => sum + Number(h.amount), 0) +
     incomeItems
-      .filter((i) => i.is_recurring && !withHistory.has(i.id))
+      .filter((i) => !withHistory.has(i.id))
       .reduce((sum, i) => sum + Number(i.amount), 0)
   );
 }

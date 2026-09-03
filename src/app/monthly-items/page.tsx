@@ -8,7 +8,8 @@ import type {
   Subscription,
   SubscriptionHistory,
 } from "@/types/finance";
-import MonthlyItemForm from "./monthly-item-form";
+import AddMonthlyItemToggle from "./add-item-toggle";
+import MonthlyItemsTable from "./monthly-items-table";
 
 export default async function MonthlyItemsPage() {
   const supabase = await createClient();
@@ -36,72 +37,100 @@ export default async function MonthlyItemsPage() {
 
   const incomeTotal = incomeList.reduce((sum, i) => sum + Number(i.amount), 0);
   const subTotal = subList.reduce((sum, s) => sum + Number(s.amount), 0);
+  const cashFlow = incomeTotal - subTotal;
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
       <h1 className="text-2xl font-semibold">Monthly Items</h1>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <SectionBox title="Income" total={incomeTotal}>
-          <ul className="flex flex-col gap-2 py-1">
-            {incomeList.length === 0 && (
-              <p className="py-1 text-sm text-gray-500">No income items yet.</p>
-            )}
-            {incomeList.map((item) => (
-              <li key={item.id} className="rounded border px-3 py-2 text-sm">
-                <div className="flex justify-between">
-                  <span>
-                    {item.name}
-                    {item.is_recurring && (
-                      <span className="ml-1 text-xs text-gray-500">(recurring)</span>
-                    )}
-                  </span>
-                  <span>{formatCurrency(Number(item.amount))}</span>
-                </div>
-                <HistoryList
-                  entries={incomeHist.filter((h) => h.income_id === item.id)}
-                />
-              </li>
-            ))}
-          </ul>
-          <div className="mt-2 border-t pt-2">
-            <MonthlyItemForm table="income_items" historyTable="income_history" historyFk="income_id" />
-          </div>
-        </SectionBox>
-
-        <SectionBox title="Subscriptions" total={subTotal}>
-          <ul className="flex flex-col gap-2 py-1">
-            {subList.length === 0 && (
-              <p className="py-1 text-sm text-gray-500">No subscriptions yet.</p>
-            )}
-            {subList.map((sub) => (
-              <li key={sub.id} className="rounded border px-3 py-2 text-sm">
-                <div className="flex justify-between">
-                  <span>
-                    {sub.name}
-                    {sub.is_recurring && (
-                      <span className="ml-1 text-xs text-gray-500">(recurring)</span>
-                    )}
-                  </span>
-                  <span className="text-red-600">{formatCurrency(Number(sub.amount))}</span>
-                </div>
-                <HistoryList
-                  entries={subHist.filter((h) => h.subscription_id === sub.id)}
-                />
-              </li>
-            ))}
-          </ul>
-          <div className="mt-2 border-t pt-2">
-            <MonthlyItemForm
-              table="subscriptions"
-              historyTable="subscription_history"
-              historyFk="subscription_id"
-              recurringDefault
-            />
-          </div>
-        </SectionBox>
+      <div className="rounded border border-black p-3 text-center dark:border-white">
+        <p className="text-xs uppercase text-gray-500">
+          Available Cash Flow (Income − Subscriptions)
+        </p>
+        <p className={`text-2xl font-bold ${cashFlow < 0 ? "text-red-600" : ""}`}>
+          {formatCurrency(cashFlow)}
+        </p>
       </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="relative">
+          <AddMonthlyItemToggle
+            title="Income"
+            table="income_items"
+            historyTable="income_history"
+            historyFk="income_id"
+          />
+          <SectionBox title="Income" total={incomeTotal}>
+            <ItemList
+              items={incomeList}
+              emptyText="No income items yet."
+              historyOf={(id) => incomeHist.filter((h) => h.income_id === id)}
+            />
+          </SectionBox>
+        </div>
+
+        <div className="relative">
+          <AddMonthlyItemToggle
+            title="Subscription"
+            table="subscriptions"
+            historyTable="subscription_history"
+            historyFk="subscription_id"
+            recurringDefault
+          />
+          <SectionBox title="Subscriptions" total={subTotal}>
+            <ItemList
+              items={subList}
+              emptyText="No subscriptions yet."
+              historyOf={(id) => subHist.filter((h) => h.subscription_id === id)}
+              negative
+            />
+          </SectionBox>
+        </div>
+      </div>
+
+      <MonthlyItemsTable
+        incomeItems={incomeList}
+        incomeHistory={incomeHist}
+        subscriptions={subList}
+        subscriptionHistory={subHist}
+      />
     </main>
+  );
+}
+
+function ItemList({
+  items,
+  emptyText,
+  historyOf,
+  negative,
+}: {
+  items: (IncomeItem | Subscription)[];
+  emptyText: string;
+  historyOf: (id: string) => { id: string; month: string; amount: number }[];
+  negative?: boolean;
+}) {
+  if (items.length === 0) {
+    return <p className="py-1 text-sm text-gray-500">{emptyText}</p>;
+  }
+  return (
+    <ul className="flex flex-col gap-2 py-1">
+      {items.map((item) => (
+        <li key={item.id} className="rounded border px-3 py-2 text-sm">
+          <div className="flex justify-between">
+            <span>
+              {item.name}
+              {item.is_recurring && (
+                <span className="ml-1 text-xs text-gray-500">(recurring)</span>
+              )}
+            </span>
+            <span className={negative ? "text-red-600" : ""}>
+              {formatCurrency(Number(item.amount))}
+            </span>
+          </div>
+          <HistoryList entries={historyOf(item.id)} />
+        </li>
+      ))}
+    </ul>
   );
 }
 

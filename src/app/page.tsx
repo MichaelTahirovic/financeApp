@@ -79,7 +79,7 @@ export default async function Home() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Net Worth" value={worth} highlight />
-        <StatCard label="Monthly Spend" value={spend} />
+        <StatCard label="Monthly Spend" value={-spend} negative />
         <StatCard label="Monthly Revenue" value={revenue} />
         <StatCard label="Debt" value={debtTotal} negative={debtTotal > 0} />
         <StatCard
