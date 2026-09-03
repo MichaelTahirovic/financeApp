@@ -37,6 +37,7 @@ export default function AccountEditForm({
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showHideInfo, setShowHideInfo] = useState(false);
 
   function updateRow(index: number, field: keyof HistoryDraft, value: string) {
     const next = [...rows];
@@ -142,14 +143,30 @@ export default function AccountEditForm({
         />
       </label>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={hidden}
-          onChange={(e) => setHidden(e.target.checked)}
-        />
-        Hide this account (keeps it saved but off the Accounts page and history chart)
-      </label>
+      <div className="flex flex-col gap-1">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={hidden}
+            onChange={(e) => setHidden(e.target.checked)}
+          />
+          Hide
+          <button
+            type="button"
+            onClick={() => setShowHideInfo((v) => !v)}
+            aria-label="About hiding accounts"
+            aria-expanded={showHideInfo}
+            className="flex h-4 w-4 items-center justify-center rounded-full border border-gray-400 text-[10px] leading-none text-gray-500 hover:text-black dark:hover:text-white"
+          >
+            i
+          </button>
+        </label>
+        {showHideInfo && (
+          <p className="text-xs text-gray-500">
+            Keeps this account saved but removes it from the Accounts page and history chart.
+          </p>
+        )}
+      </div>
 
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
