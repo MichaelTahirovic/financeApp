@@ -23,9 +23,11 @@ so each signed-up user only ever sees their own data — no per-user database pr
 ### 2. Apply the database schema
 
 1. In the Supabase dashboard, go to **SQL Editor → New query**.
-2. Paste in the contents of [`supabase/schema.sql`](./supabase/schema.sql) and run it.
-   This creates the `accounts`, `categories`, `transactions`, and `budgets` tables along with
-   Row-Level Security policies so every user can only access their own rows.
+2. Paste in the contents of [`supabase/schema.sql`](./supabase/schema.sql) and run it,
+   then do the same with [`supabase/schema_v2.sql`](./supabase/schema_v2.sql) (the current
+   feature model — it replaces the Phase 1 tables).
+   This creates the tables along with Row-Level Security policies so every user can only
+   access their own rows.
 
 ### 3. Configure environment variables
 
@@ -69,16 +71,25 @@ No manual setup is required per user.
 
 ## Data model
 
-- **accounts** — checking/savings/credit card/etc., each with a starting balance
-- **categories** — income or expense categories (e.g. "Salary", "Groceries")
-- **transactions** — individual income/expense entries tied to an account and optional category
-- **budgets** — a monthly spending limit per category
+- **flow_accounts** — places money flows, split into Accounts Receivable / Accounts Payable;
+  payable accounts can be flagged as annual subscriptions (accrue `annual_amount / 12` monthly)
+- **account_history** — optional monthly amount history per flow account
+- **income_items** / **income_history** — income flows with a recurring toggle
+- **subscriptions** / **subscription_history** — subscriptions with a recurring toggle (default on)
+- **budgets** — named monthly spending limits
+- **expenses** — purchases logged against a budget (cost + budget required; date, type, and name optional)
 
-See [`supabase/schema.sql`](./supabase/schema.sql) for full definitions and RLS policies.
+See [`supabase/schema_v2.sql`](./supabase/schema_v2.sql) for full definitions and RLS policies.
+
+## Pages
+
+- **Home** — net worth, monthly spend, monthly revenue, debt, monthly net-worth change, and per-budget progress
+- **Accounts** — Receivable/Payable boxes with bolded totals and net worth above them
+- **Monthly Items** — Income and Subscriptions boxes with bolded totals
+- **Budgeting** — create budgets and log purchases
+- **Forecast** — next-month spend estimate (3-month average, falls back to previous month)
 
 ## Notes
 
 - Supabase free tier: 500MB database, 50k monthly active auth users — plenty of headroom to grow.
 - Free-tier Supabase projects pause after ~1 week of no API activity; they auto-resume on the next request.
-- Adding your first account/category currently requires inserting a row via the Supabase Table
-  Editor (dashboard) — a UI for managing accounts/categories can be added as a follow-up.
