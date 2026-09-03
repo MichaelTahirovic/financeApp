@@ -45,8 +45,14 @@ html.dark .btn-primary {
   color: #000;
 }
 
-/* Print / PDF report: force a white background with the restricted palette
-   (black, grey, white, green, red) and hide interactive controls. */
+/* Print / PDF report: landscape so the 12-month history tables fit, white
+   background, restricted palette (black, grey, white, green, red), and hide
+   interactive controls. */
+@page {
+  size: landscape;
+  margin: 0.5in;
+}
+
 @media print {
   .no-print {
     display: none !important;
@@ -59,6 +65,20 @@ html.dark .btn-primary {
     --background: #ffffff;
     --foreground: #000000;
     color-scheme: light;
+  }
+  .report {
+    border: none;
+    padding: 0;
+  }
+  /* Shrink wide month tables so all columns fit the landscape page. */
+  .report-table {
+    font-size: 0.65rem;
+    table-layout: auto;
+  }
+  .report-table th,
+  .report-table td {
+    padding: 0.125rem 0.25rem;
+    white-space: nowrap;
   }
 }
 
