@@ -28,7 +28,7 @@ export default function AddMonthlyItemToggle({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? `Close add ${title} form` : `Add ${title}`}
-        className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black text-lg leading-none text-white dark:bg-white dark:text-black"
+        className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-lg leading-none text-white dark:bg-white dark:text-black"
       >
         {open ? "×" : "+"}
       </button>

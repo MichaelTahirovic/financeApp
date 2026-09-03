@@ -82,7 +82,7 @@ export default async function Home() {
 
       <div className="grid grid-cols-2 gap-3">
         <StatCard label="Net Worth" value={worth} highlight />
-        <StatCard label="Monthly Revenue" value={revenue} />
+        <StatCard label="Monthly Revenue" value={revenue} positive />
         <StatCard
           label="Net Worth Change (this month)"
           value={difference}
@@ -122,16 +122,18 @@ function StatCard({
   value,
   highlight,
   negative,
+  positive,
 }: {
   label: string;
   value: number;
   highlight?: boolean;
   negative?: boolean;
+  positive?: boolean;
 }) {
   return (
     <div
       className={`rounded border p-3 ${highlight ? "border-black dark:border-white" : ""} ${
-        negative ? "text-red-600" : ""
+        negative ? "text-red-600" : positive ? "text-green-600" : ""
       }`}
     >
       <p className="text-xs uppercase text-gray-500">{label}</p>

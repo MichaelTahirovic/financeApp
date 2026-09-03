@@ -32,8 +32,12 @@ export default function BudgetForm({
 }) {
   const router = useRouter();
   const [name, setName] = useState(budget?.name ?? "");
-  const [limit, setLimit] = useState(budget ? String(budget.monthly_limit) : "");
-  const [limitMode, setLimitMode] = useState<"dollars" | "percent">("dollars");
+  const [limit, setLimit] = useState(
+    budget?.limit_percent != null ? String(budget.limit_percent) : budget ? String(budget.monthly_limit) : ""
+  );
+  const [limitMode, setLimitMode] = useState<"dollars" | "percent">(
+    budget?.limit_percent != null ? "percent" : "dollars"
+  );
   const [showLimitInfo, setShowLimitInfo] = useState(false);
   const [emoji, setEmoji] = useState(budget?.emoji ?? "");
   const [types, setTypes] = useState<TypeDraft[]>(
@@ -90,7 +94,9 @@ export default function BudgetForm({
     }
 
     // Resolve the limit: dollars as entered, or a percentage of available cash flow.
+    // When a percentage is used we also persist it so editing keeps the % value.
     let monthlyLimit: number;
+    let limitPercent: number | null = null;
     if (limitMode === "percent") {
       const pct = Number(limit);
       if (isNaN(pct) || pct < 0 || pct > 100) {
@@ -103,6 +109,7 @@ export default function BudgetForm({
         setSaving(false);
         return;
       }
+      limitPercent = pct;
       monthlyLimit = Math.round(availableCashFlow * (pct / 100) * 100) / 100;
     } else {
       monthlyLimit = Number(limit);
@@ -113,7 +120,12 @@ export default function BudgetForm({
     if (budget) {
       const { error: updateError } = await supabase
         .from("budgets")
-        .update({ name, monthly_limit: monthlyLimit, emoji: emoji || null })
+        .update({
+          name,
+          monthly_limit: monthlyLimit,
+          limit_percent: limitPercent,
+          emoji: emoji || null,
+        })
         .eq("id", budget.id);
       if (updateError) {
         setError(updateError.message);
@@ -127,6 +139,7 @@ export default function BudgetForm({
           user_id: user.id,
           name,
           monthly_limit: monthlyLimit,
+          limit_percent: limitPercent,
           emoji: emoji || null,
         })
         .select("id")

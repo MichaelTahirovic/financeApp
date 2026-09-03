@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { monthLabel } from "@/lib/finance/calculations";
 import type { Budget, Expense, PurchaseType } from "@/types/finance";
 import { PurchaseRow } from "../budgeting/recent-purchases";
+import { PurchaseSelectionProvider } from "../budgeting/purchase-selection";
 
 /**
  * All purchases, grouped by month with sticky month/year section headers that
@@ -40,28 +42,35 @@ export default async function PurchasesPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
-      <h1 className="text-2xl font-semibold">All Purchases</h1>
+      <div className="flex items-center gap-3">
+        <Link href="/budgeting" className="rounded border px-3 py-1 text-sm">
+          ← Back
+        </Link>
+        <h1 className="text-2xl font-semibold">All Purchases</h1>
+      </div>
 
       {expenseList.length === 0 ? (
         <p className="text-sm text-gray-500">No purchases logged yet.</p>
       ) : (
-        months.map((month) => (
-          <section key={month} className="rounded border">
-            <h2 className="sticky top-14 z-10 border-b bg-background px-4 py-2 text-lg font-medium">
-              {monthLabel(month)}
-            </h2>
-            <ul className="divide-y text-sm">
-              {byMonth.get(month)!.map((e) => (
-                <PurchaseRow
-                  key={e.id}
-                  expense={e}
-                  budgets={budgetList}
-                  purchaseTypes={typeList}
-                />
-              ))}
-            </ul>
-          </section>
-        ))
+        <PurchaseSelectionProvider budgets={budgetList} purchaseTypes={typeList}>
+          {months.map((month) => (
+            <section key={month} className="rounded border">
+              <h2 className="sticky top-14 z-10 border-b bg-background px-4 py-2 text-lg font-medium">
+                {monthLabel(month)}
+              </h2>
+              <ul className="divide-y text-sm">
+                {byMonth.get(month)!.map((e) => (
+                  <PurchaseRow
+                    key={e.id}
+                    expense={e}
+                    budgets={budgetList}
+                    purchaseTypes={typeList}
+                  />
+                ))}
+              </ul>
+            </section>
+          ))}
+        </PurchaseSelectionProvider>
       )}
     </main>
   );

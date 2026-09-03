@@ -65,6 +65,7 @@ export interface Budget {
   user_id: string;
   name: string;
   monthly_limit: number;
+  limit_percent: number | null;
   emoji: string | null;
   created_at: string;
 }

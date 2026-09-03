@@ -12,6 +12,7 @@ import BudgetForm from "./budget-form";
 import ExpenseForm from "./expense-form";
 import BudgetListItem from "./budget-list-item";
 import RecentPurchases from "./recent-purchases";
+import { PurchaseSelectionProvider } from "./purchase-selection";
 
 export default async function BudgetingPage() {
   const supabase = await createClient();
@@ -25,7 +26,11 @@ export default async function BudgetingPage() {
   const [{ data: budgets }, { data: expenses }, { data: purchaseTypes }, { data: incomeItems }, { data: incomeHistory }, { data: subscriptions }, { data: subscriptionHistory }] =
     await Promise.all([
       supabase.from("budgets").select("*").order("name"),
-      supabase.from("expenses").select("*").order("occurred_on", { ascending: false }),
+      supabase
+        .from("expenses")
+        .select("*")
+        .order("occurred_on", { ascending: false })
+        .order("occurred_time", { ascending: false }),
       supabase.from("purchase_types").select("*").order("created_at"),
       supabase.from("income_items").select("*"),
       supabase.from("income_history").select("*"),
@@ -52,9 +57,8 @@ export default async function BudgetingPage() {
       <h1 className="text-2xl font-semibold">Budgeting — {monthLabel(month)}</h1>
 
       <div className="rounded border border-black p-3 text-center dark:border-white">
-        <p className="text-xs uppercase text-gray-500">
-          Available Cash Flow (Income − Payments)
-        </p>
+        <p className="text-xs uppercase text-gray-500">Available Monthly Cash Flow</p>
+        <p className="text-xs text-gray-500">(Income − Payments)</p>
         <p className={`text-2xl font-bold ${availableCashFlow < 0 ? "text-red-600" : ""}`}>
           {formatCurrency(availableCashFlow)}
         </p>
@@ -95,7 +99,9 @@ export default async function BudgetingPage() {
           <ExpenseForm budgets={budgetList} purchaseTypes={typeList} />
         </CardAddToggle>
         <h2 className="border-b px-4 py-2 text-lg font-medium">Recent Purchases</h2>
-        <RecentPurchases expenses={recent} budgets={budgetList} purchaseTypes={typeList} />
+        <PurchaseSelectionProvider budgets={budgetList} purchaseTypes={typeList}>
+          <RecentPurchases expenses={recent} budgets={budgetList} purchaseTypes={typeList} />
+        </PurchaseSelectionProvider>
       </section>
     </main>
   );

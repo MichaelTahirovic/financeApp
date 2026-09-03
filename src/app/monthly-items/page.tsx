@@ -12,7 +12,7 @@ import AddMonthlyItemToggle from "./add-item-toggle";
 import MonthlyItemsTable from "./monthly-items-table";
 import SortableItemList from "./sortable-item-list";
 import HiddenMonthlyItems from "./hidden-items";
-import { ItemSortProvider } from "./item-sort";
+import { ItemSortProvider, ItemSortButton } from "./item-sort";
 
 export default async function MonthlyItemsPage() {
   const supabase = await createClient();
@@ -52,60 +52,71 @@ export default async function MonthlyItemsPage() {
       <h1 className="text-2xl font-semibold">Monthly Items</h1>
 
       <div className="rounded border border-black p-3 text-center dark:border-white">
-        <p className="text-xs uppercase text-gray-500">
-          Available Cash Flow (Income − Payments)
-        </p>
+        <p className="text-xs uppercase text-gray-500">Available Monthly Cash Flow</p>
+        <p className="text-xs text-gray-500">(Income − Payments)</p>
         <p className={`text-2xl font-bold ${cashFlow < 0 ? "text-red-600" : ""}`}>
           {formatCurrency(cashFlow)}
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="relative">
-          <ItemSortProvider>
-            <AddMonthlyItemToggle
-              title="Income"
+        <ItemSortProvider>
+          <SectionBox
+            title="Income"
+            total={incomeTotal}
+            headerActions={
+              <>
+                <ItemSortButton />
+                <AddMonthlyItemToggle
+                  title="Income"
+                  table="income_items"
+                  historyTable="income_history"
+                  historyFk="income_id"
+                />
+              </>
+            }
+          >
+            <SortableItemList
+              items={incomeList}
+              emptyText="No income items yet."
               table="income_items"
               historyTable="income_history"
               historyFk="income_id"
+              allHistory={incomeHist}
             />
-            <SectionBox title="Income" total={incomeTotal}>
-              <SortableItemList
-                items={incomeList}
-                emptyText="No income items yet."
-                table="income_items"
-                historyTable="income_history"
-                historyFk="income_id"
-                allHistory={incomeHist}
-              />
-              <HiddenMonthlyItems items={hiddenIncome} table="income_items" />
-            </SectionBox>
-          </ItemSortProvider>
-        </div>
+            <HiddenMonthlyItems items={hiddenIncome} table="income_items" />
+          </SectionBox>
+        </ItemSortProvider>
 
-        <div className="relative">
-          <ItemSortProvider>
-            <AddMonthlyItemToggle
-              title="Payment"
+        <ItemSortProvider>
+          <SectionBox
+            title="Payments"
+            total={paymentTotal}
+            headerActions={
+              <>
+                <ItemSortButton />
+                <AddMonthlyItemToggle
+                  title="Payment"
+                  table="subscriptions"
+                  historyTable="subscription_history"
+                  historyFk="subscription_id"
+                  recurringDefault
+                />
+              </>
+            }
+          >
+            <SortableItemList
+              items={paymentList}
+              emptyText="No payments yet."
               table="subscriptions"
               historyTable="subscription_history"
               historyFk="subscription_id"
-              recurringDefault
+              allHistory={paymentHist}
+              negative
             />
-            <SectionBox title="Payments" total={paymentTotal}>
-              <SortableItemList
-                items={paymentList}
-                emptyText="No payments yet."
-                table="subscriptions"
-                historyTable="subscription_history"
-                historyFk="subscription_id"
-                allHistory={paymentHist}
-                negative
-              />
-              <HiddenMonthlyItems items={hiddenPayments} table="subscriptions" />
-            </SectionBox>
-          </ItemSortProvider>
-        </div>
+            <HiddenMonthlyItems items={hiddenPayments} table="subscriptions" />
+          </SectionBox>
+        </ItemSortProvider>
       </div>
 
       <MonthlyItemsTable

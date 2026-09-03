@@ -51,6 +51,9 @@ export default function BudgetListItem({
         </span>
         <span className={over ? "shrink-0 font-semibold text-red-600" : "shrink-0"}>
           {formatCurrency(spent)} / {formatCurrency(limit)}
+          {budget.limit_percent != null && (
+            <span className="text-gray-500"> ({budget.limit_percent}%)</span>
+          )}
         </span>
       </div>
 

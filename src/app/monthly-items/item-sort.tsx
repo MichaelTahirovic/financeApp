@@ -14,8 +14,7 @@ export function useItemSort() {
 }
 
 /**
- * Provides sort-mode state for one Monthly Items card and renders a filter
- * button (left of the add +) that cycles default -> highest -> lowest -> default.
+ * Provides sort-mode state for one Monthly Items card.
  */
 export function ItemSortProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<SortMode>("default");
@@ -24,22 +23,26 @@ export function ItemSortProvider({ children }: { children: ReactNode }) {
     setMode((m) => (m === "default" ? "desc" : m === "desc" ? "asc" : "default"));
   }
 
+  return <SortContext.Provider value={{ mode, cycle }}>{children}</SortContext.Provider>;
+}
+
+/**
+ * The card's sort filter button — renders in the card header (left of the add +).
+ */
+export function ItemSortButton() {
+  const { mode, cycle } = useItemSort();
   const label =
     mode === "desc" ? "High to low" : mode === "asc" ? "Low to high" : "Default order";
   const icon = mode === "desc" ? "▼" : mode === "asc" ? "▲" : "⇅";
-
   return (
-    <SortContext.Provider value={{ mode, cycle }}>
-      <button
-        type="button"
-        onClick={cycle}
-        aria-label={`Sort: ${label}`}
-        title={`Sort: ${label}`}
-        className="absolute right-11 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full border text-sm"
-      >
-        {icon}
-      </button>
-      {children}
-    </SortContext.Provider>
+    <button
+      type="button"
+      onClick={cycle}
+      aria-label={`Sort: ${label}`}
+      title={`Sort: ${label}`}
+      className="flex h-7 w-7 items-center justify-center rounded-full border text-sm"
+    >
+      {icon}
+    </button>
   );
 }

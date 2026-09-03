@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatCurrency } from "@/lib/finance/calculations";
 import type { Budget, Expense, PurchaseType } from "@/types/finance";
 import ExpenseForm from "./expense-form";
+import { usePurchaseSelection } from "./purchase-selection";
 
 const PREVIEW_COUNT = 10;
 
@@ -56,6 +57,7 @@ export function PurchaseRow({
   purchaseTypes: PurchaseType[];
 }) {
   const [editing, setEditing] = useState(false);
+  const { selected, toggle } = usePurchaseSelection();
   const budget = budgets.find((b) => b.id === expense.budget_id);
   const time = expense.occurred_time ? expense.occurred_time.slice(0, 5) : null;
 
@@ -83,6 +85,13 @@ export function PurchaseRow({
           >
             {editing ? "Close" : "Edit"}
           </button>
+          <input
+            type="checkbox"
+            checked={selected.has(expense.id)}
+            onChange={() => toggle(expense.id)}
+            aria-label="Select purchase"
+            className="h-4 w-4 cursor-pointer"
+          />
         </span>
       </div>
       {editing && (
