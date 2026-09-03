@@ -2,15 +2,15 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SectionBox } from "@/components/section-box";
 import {
-  effectiveMonthlyAmount,
   formatCurrency,
-  monthLabel,
   netWorth,
   payableTotal,
   receivableTotal,
 } from "@/lib/finance/calculations";
 import type { AccountHistory, FlowAccount } from "@/types/finance";
-import AccountForm from "./account-form";
+import AccountListItem from "./account-list-item";
+import AccountHistoryTable from "./account-history-table";
+import AddAccountToggle from "./add-account-toggle";
 
 export default async function AccountsPage() {
   const supabase = await createClient();
@@ -33,7 +33,9 @@ export default async function AccountsPage() {
   const worth = netWorth(accountList);
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
+    <main className="relative mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
+      <AddAccountToggle />
+
       <h1 className="text-2xl font-semibold">Accounts</h1>
 
       <div className="rounded border border-black p-3 text-center">
@@ -55,12 +57,7 @@ export default async function AccountsPage() {
         </SectionBox>
       </div>
 
-      <section className="rounded border">
-        <h2 className="border-b px-4 py-2 text-lg font-medium">Add Account</h2>
-        <div className="p-4">
-          <AccountForm />
-        </div>
-      </section>
+      <AccountHistoryTable accounts={accountList} history={historyList} />
     </main>
   );
 }
@@ -79,38 +76,9 @@ function AccountList({
   }
   return (
     <ul className="flex flex-col gap-2 py-1">
-      {accounts.map((a) => {
-        const entries = history.filter((h) => h.account_id === a.id);
-        const monthly = effectiveMonthlyAmount(a);
-        return (
-          <li key={a.id} className="rounded border px-3 py-2 text-sm">
-            <div className="flex justify-between">
-              <span>
-                {a.name}
-                {payable && a.is_annual_subscription && (
-                  <span className="ml-1 text-xs text-gray-500">
-                    (annual {formatCurrency(Number(a.annual_amount ?? 0))} →{" "}
-                    {formatCurrency(monthly)}/mo)
-                  </span>
-                )}
-              </span>
-              <span className={payable ? "text-red-600" : ""}>
-                {formatCurrency(payable ? monthly : Number(a.amount))}
-              </span>
-            </div>
-            {entries.length > 0 && (
-              <ul className="mt-1 text-xs text-gray-500">
-                {entries.map((h) => (
-                  <li key={h.id} className="flex justify-between">
-                    <span>{monthLabel(h.month.slice(0, 7))}</span>
-                    <span>{formatCurrency(Number(h.amount))}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        );
-      })}
+      {accounts.map((a) => (
+        <AccountListItem key={a.id} account={a} history={history} payable={payable} />
+      ))}
     </ul>
   );
 }

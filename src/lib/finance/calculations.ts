@@ -67,6 +67,26 @@ export function receivableTotal(accounts: FlowAccount[]): number {
     .reduce((sum, a) => sum + Number(a.amount), 0);
 }
 
+/**
+ * Monthly change for an account: effective current value minus the most recent
+ * recorded previous month. Returns 0 when there is no prior month recorded.
+ */
+export function monthlyChange(account: FlowAccount, history: AccountHistory[]): number {
+  const prior = history
+    .filter((h) => h.account_id === account.id)
+    .map((h) => h.month.slice(0, 7))
+    .filter((m) => m < currentMonth())
+    .sort()
+    .pop();
+
+  if (!prior) return 0;
+
+  const priorEntry = history.find(
+    (h) => h.account_id === account.id && h.month.slice(0, 7) === prior
+  );
+  return effectiveMonthlyAmount(account) - Number(priorEntry?.amount ?? 0);
+}
+
 /** Accounts Payable total, counting annual subscriptions at their monthly accrual. */
 export function payableTotal(accounts: FlowAccount[]): number {
   return accounts
