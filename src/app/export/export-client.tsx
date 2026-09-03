@@ -160,7 +160,7 @@ export default function ExportClient({ data }: { data: ExportData }) {
       ["Name", "Budget", "Purchase Type", "Amount", "Date", "Time"],
       ...data.expenses.map((e) => [
         e.name ?? "",
-        data.budgets.find((b) => b.id === e.budget_id)?.name ?? "",
+        data.budgets.find((b) => b.id === e.budget_id)?.name ?? "Undefined",
         e.purchase_type ?? "General",
         Number(e.amount),
         e.occurred_on,
@@ -270,7 +270,7 @@ export default function ExportClient({ data }: { data: ExportData }) {
             head={["Name", "Budget", "Type", "Amount", "Date"]}
             rows={data.currentMonthExpenses.map((e) => [
               e.name ?? "(unnamed)",
-              data.budgets.find((b) => b.id === e.budget_id)?.name ?? "",
+              data.budgets.find((b) => b.id === e.budget_id)?.name ?? "Undefined",
               e.purchase_type ?? "General",
               formatCurrency(Number(e.amount)),
               e.occurred_on + (e.occurred_time ? ` ${e.occurred_time.slice(0, 5)}` : ""),

@@ -67,7 +67,7 @@ export function PurchaseRow({
         <span className="min-w-0">
           {budget?.emoji && <span className="mr-1">{budget.emoji}</span>}
           <span className="font-bold text-foreground">{expense.name || "(unnamed)"}</span>
-          {budget && <span className="text-foreground"> - {budget.name}</span>}
+          <span className="text-foreground"> - {budget ? budget.name : "Undefined"}</span>
           {expense.purchase_type && (
             <span className="text-gray-500"> • {expense.purchase_type}</span>
           )}

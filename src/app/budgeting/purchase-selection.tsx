@@ -63,7 +63,9 @@ export function PurchaseSelectionProvider({
   // purchase-type dropdown and to disable it when the selection spans budgets.
   const selectedBudgetIds = useMemo(() => {
     const ids = new Set(
-      expenses.filter((e) => selected.has(e.id)).map((e) => e.budget_id)
+      expenses
+        .filter((e) => selected.has(e.id) && e.budget_id !== null)
+        .map((e) => e.budget_id as string)
     );
     return [...ids];
   }, [expenses, selected]);

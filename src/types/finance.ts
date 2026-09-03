@@ -82,7 +82,7 @@ export interface PurchaseType {
 export interface Expense {
   id: string;
   user_id: string;
-  budget_id: string;
+  budget_id: string | null; // null = "Undefined" (budget was deleted)
   amount: number;
   name: string | null;
   purchase_type: string | null;

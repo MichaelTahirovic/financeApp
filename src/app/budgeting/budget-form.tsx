@@ -49,7 +49,7 @@ export default function BudgetForm({
 
   async function handleDelete() {
     if (!budget) return;
-    if (!window.confirm(`Delete the budget "${budget.name}"? Purchases assigned to it will also be removed. This cannot be undone.`)) return;
+    if (!window.confirm(`Delete the budget "${budget.name}"? Its purchases will be kept and marked as "Undefined". This cannot be undone.`)) return;
     setDeleting(true);
     setError(null);
     const supabase = createClient();

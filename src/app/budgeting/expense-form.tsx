@@ -32,7 +32,10 @@ export default function ExpenseForm({
   const router = useRouter();
   const isEdit = Boolean(expense);
 
-  const [budgetId, setBudgetId] = useState(expense?.budget_id ?? budgets[0]?.id ?? "");
+  const UNDEFINED = "__undefined__";
+  const [budgetId, setBudgetId] = useState(
+    expense ? expense.budget_id ?? UNDEFINED : budgets[0]?.id ?? ""
+  );
   const [amount, setAmount] = useState(expense ? String(expense.amount) : "");
   const [name, setName] = useState(expense?.name ?? "");
   const [typeChoice, setTypeChoice] = useState(expense?.purchase_type ?? "General");
@@ -66,6 +69,8 @@ export default function ExpenseForm({
   }
 
   async function resolvePurchaseType(supabase: ReturnType<typeof createClient>, userId: string) {
+    // Undefined budget has no purchase types - always General.
+    if (budgetId === UNDEFINED) return "General";
     let purchaseType = typeChoice === NEW_TYPE ? newTypeName.trim() : typeChoice;
     if (typeChoice === NEW_TYPE) {
       if (!purchaseType) throw new Error("Enter a name for the new purchase type.");
@@ -112,7 +117,7 @@ export default function ExpenseForm({
     }
 
     const payload = {
-      budget_id: budgetId,
+      budget_id: budgetId === UNDEFINED ? null : budgetId,
       amount: Number(amount),
       name: name || null,
       purchase_type: purchaseType,
@@ -171,6 +176,11 @@ export default function ExpenseForm({
           required
           className="flex-1 rounded border bg-white px-2 py-1.5 text-black"
         >
+          {budgetId === UNDEFINED && (
+            <option value={UNDEFINED} className="text-black">
+              Undefined
+            </option>
+          )}
           {budgets.map((b) => (
             <option key={b.id} value={b.id} className="text-black">
               {b.emoji ? `${b.emoji} ` : ""}
@@ -191,9 +201,11 @@ export default function ExpenseForm({
               {t}
             </option>
           ))}
-          <option value={NEW_TYPE} className="text-black">
-            + New type…
-          </option>
+          {budgetId !== UNDEFINED && (
+            <option value={NEW_TYPE} className="text-black">
+              + New type…
+            </option>
+          )}
         </select>
         {typeChoice === NEW_TYPE && (
           <input
