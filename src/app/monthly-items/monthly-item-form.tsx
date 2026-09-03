@@ -10,7 +10,7 @@ interface HistoryRow {
 }
 
 /**
- * Shared add-item form for Income and Subscriptions.
+ * Shared add-item form for Income and Payments.
  */
 export default function MonthlyItemForm({
   table,

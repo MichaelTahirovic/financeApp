@@ -16,8 +16,8 @@ type History = IncomeHistory | SubscriptionHistory;
 
 /**
  * Spreadsheet-style table for Monthly Items: items as rows (income first, then
- * subscriptions shown negative), months as columns (oldest → newest). Includes
- * Total Income, Total Subscriptions, and Available Cash Flow rows. Theme-aware.
+ * payments shown negative), months as columns (oldest → newest). Includes
+ * Total Income, Total Payments, and Available Cash Flow rows. Theme-aware.
  */
 export default function MonthlyItemsTable({
   incomeItems,
@@ -65,6 +65,10 @@ export default function MonthlyItemsTable({
   const subColTotal = (m: string) =>
     subscriptions.reduce((sum, s) => sum + rawSubscription(s, m), 0);
 
+  // Sort each section highest value first (by current amount).
+  const sortedIncome = [...incomeItems].sort((a, b) => Number(b.amount) - Number(a.amount));
+  const sortedSubs = [...subscriptions].sort((a, b) => Number(b.amount) - Number(a.amount));
+
   const headerCell = "whitespace-nowrap px-3 py-2 text-right font-medium";
   const bodyCell = "whitespace-nowrap px-3 py-2 text-right";
   const stickyName = "sticky left-0 whitespace-nowrap bg-background px-3 py-2";
@@ -88,7 +92,7 @@ export default function MonthlyItemsTable({
             </tr>
           </thead>
           <tbody>
-            {incomeItems.map((item) => (
+            {sortedIncome.map((item) => (
               <ItemRow
                 key={item.id}
                 name={item.name}
@@ -112,7 +116,7 @@ export default function MonthlyItemsTable({
               accent="text-green-600"
             />
 
-            {subscriptions.map((sub) => (
+            {sortedSubs.map((sub) => (
               <ItemRow
                 key={sub.id}
                 name={sub.name}
@@ -126,7 +130,7 @@ export default function MonthlyItemsTable({
               />
             ))}
             <TotalRow
-              label="Total Subscriptions"
+              label="Total Payments"
               months={months}
               now={now}
               valueFor={(m) => -subColTotal(m)}
@@ -181,7 +185,7 @@ function ItemRow({
             kind === "subscription" ? "text-red-500" : "text-green-600"
           }`}
         >
-          {kind === "subscription" ? "Sub" : "Inc"}
+          {kind === "subscription" ? "Pay" : "Inc"}
         </span>
       </td>
       {months.map((m) => {

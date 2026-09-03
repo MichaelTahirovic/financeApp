@@ -137,7 +137,7 @@ export default function AccountForm() {
               checked={isAnnual}
               onChange={(e) => setIsAnnual(e.target.checked)}
             />
-            Annual Subscription?
+            Annual Payment?
           </label>
           {isAnnual && (
             <input

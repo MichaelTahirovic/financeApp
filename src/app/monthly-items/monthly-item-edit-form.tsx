@@ -13,7 +13,7 @@ interface HistoryDraft {
 type Item = IncomeItem | Subscription;
 
 /**
- * Inline editor for one income item or subscription: name, amount, recurring
+ * Inline editor for one income item or payment: name, amount, recurring
  * toggle, hide checkbox (info tooltip), and editable monthly history with
  * upsert + deletion of removed months.
  */

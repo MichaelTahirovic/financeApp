@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/finance/calculations";
 import type { IncomeItem, Subscription } from "@/types/finance";
 import MonthlyItemEditForm from "./monthly-item-edit-form";
@@ -10,7 +8,8 @@ import MonthlyItemEditForm from "./monthly-item-edit-form";
 type Item = IncomeItem | Subscription;
 
 /**
- * One income/subscription row with an inline Edit toggle and a quick Hide button.
+ * One income/payment row with an inline Edit toggle. Hiding is done via the
+ * Hide checkbox inside the edit form.
  */
 export default function MonthlyItemListItem({
   item,
@@ -27,14 +26,7 @@ export default function MonthlyItemListItem({
   historyFk: "income_id" | "subscription_id";
   negative?: boolean;
 }) {
-  const router = useRouter();
   const [editing, setEditing] = useState(false);
-
-  async function quickHide() {
-    const supabase = createClient();
-    await supabase.from(table).update({ hidden: true }).eq("id", item.id);
-    router.refresh();
-  }
 
   return (
     <li className="rounded border px-3 py-2 text-sm">
@@ -55,15 +47,6 @@ export default function MonthlyItemListItem({
             className="rounded border px-2 py-0.5 text-xs"
           >
             {editing ? "Close" : "Edit"}
-          </button>
-          <button
-            type="button"
-            onClick={quickHide}
-            aria-label="Hide item"
-            title="Hide"
-            className="rounded border px-2 py-0.5 text-xs text-gray-500 hover:text-black dark:hover:text-white"
-          >
-            Hide
           </button>
         </span>
       </div>

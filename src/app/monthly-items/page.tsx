@@ -10,8 +10,9 @@ import type {
 } from "@/types/finance";
 import AddMonthlyItemToggle from "./add-item-toggle";
 import MonthlyItemsTable from "./monthly-items-table";
-import MonthlyItemListItem from "./monthly-item-list-item";
+import SortableItemList from "./sortable-item-list";
 import HiddenMonthlyItems from "./hidden-items";
+import { ItemSortProvider } from "./item-sort";
 
 export default async function MonthlyItemsPage() {
   const supabase = await createClient();
@@ -34,17 +35,17 @@ export default async function MonthlyItemsPage() {
 
   const allIncome = (incomeItems ?? []) as IncomeItem[];
   const incomeHist = (incomeHistory ?? []) as IncomeHistory[];
-  const allSubs = (subscriptions ?? []) as Subscription[];
-  const subHist = (subscriptionHistory ?? []) as SubscriptionHistory[];
+  const allPayments = (subscriptions ?? []) as Subscription[];
+  const paymentHist = (subscriptionHistory ?? []) as SubscriptionHistory[];
 
   const incomeList = allIncome.filter((i) => !i.hidden);
-  const subList = allSubs.filter((s) => !s.hidden);
+  const paymentList = allPayments.filter((s) => !s.hidden);
   const hiddenIncome = allIncome.filter((i) => i.hidden);
-  const hiddenSubs = allSubs.filter((s) => s.hidden);
+  const hiddenPayments = allPayments.filter((s) => s.hidden);
 
   const incomeTotal = incomeList.reduce((sum, i) => sum + Number(i.amount), 0);
-  const subTotal = subList.reduce((sum, s) => sum + Number(s.amount), 0);
-  const cashFlow = incomeTotal - subTotal;
+  const paymentTotal = paymentList.reduce((sum, s) => sum + Number(s.amount), 0);
+  const cashFlow = incomeTotal - paymentTotal;
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
@@ -52,7 +53,7 @@ export default async function MonthlyItemsPage() {
 
       <div className="rounded border border-black p-3 text-center dark:border-white">
         <p className="text-xs uppercase text-gray-500">
-          Available Cash Flow (Income − Subscriptions)
+          Available Cash Flow (Income − Payments)
         </p>
         <p className={`text-2xl font-bold ${cashFlow < 0 ? "text-red-600" : ""}`}>
           {formatCurrency(cashFlow)}
@@ -61,97 +62,58 @@ export default async function MonthlyItemsPage() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="relative">
-          <AddMonthlyItemToggle
-            title="Income"
-            table="income_items"
-            historyTable="income_history"
-            historyFk="income_id"
-          />
-          <SectionBox title="Income" total={incomeTotal}>
-            <ItemList
-              items={incomeList}
-              emptyText="No income items yet."
+          <ItemSortProvider>
+            <AddMonthlyItemToggle
+              title="Income"
               table="income_items"
               historyTable="income_history"
               historyFk="income_id"
-              allHistory={incomeHist}
             />
-            <HiddenMonthlyItems items={hiddenIncome} table="income_items" />
-          </SectionBox>
+            <SectionBox title="Income" total={incomeTotal}>
+              <SortableItemList
+                items={incomeList}
+                emptyText="No income items yet."
+                table="income_items"
+                historyTable="income_history"
+                historyFk="income_id"
+                allHistory={incomeHist}
+              />
+              <HiddenMonthlyItems items={hiddenIncome} table="income_items" />
+            </SectionBox>
+          </ItemSortProvider>
         </div>
 
         <div className="relative">
-          <AddMonthlyItemToggle
-            title="Subscription"
-            table="subscriptions"
-            historyTable="subscription_history"
-            historyFk="subscription_id"
-            recurringDefault
-          />
-          <SectionBox title="Subscriptions" total={subTotal}>
-            <ItemList
-              items={subList}
-              emptyText="No subscriptions yet."
+          <ItemSortProvider>
+            <AddMonthlyItemToggle
+              title="Payment"
               table="subscriptions"
               historyTable="subscription_history"
               historyFk="subscription_id"
-              allHistory={subHist}
-              negative
+              recurringDefault
             />
-            <HiddenMonthlyItems items={hiddenSubs} table="subscriptions" />
-          </SectionBox>
+            <SectionBox title="Payments" total={paymentTotal}>
+              <SortableItemList
+                items={paymentList}
+                emptyText="No payments yet."
+                table="subscriptions"
+                historyTable="subscription_history"
+                historyFk="subscription_id"
+                allHistory={paymentHist}
+                negative
+              />
+              <HiddenMonthlyItems items={hiddenPayments} table="subscriptions" />
+            </SectionBox>
+          </ItemSortProvider>
         </div>
       </div>
 
       <MonthlyItemsTable
         incomeItems={incomeList}
         incomeHistory={incomeHist}
-        subscriptions={subList}
-        subscriptionHistory={subHist}
+        subscriptions={paymentList}
+        subscriptionHistory={paymentHist}
       />
     </main>
-  );
-}
-
-function ItemList({
-  items,
-  emptyText,
-  table,
-  historyTable,
-  historyFk,
-  allHistory,
-  negative,
-}: {
-  items: (IncomeItem | Subscription)[];
-  emptyText: string;
-  table: "income_items" | "subscriptions";
-  historyTable: "income_history" | "subscription_history";
-  historyFk: "income_id" | "subscription_id";
-  allHistory: (IncomeHistory | SubscriptionHistory)[];
-  negative?: boolean;
-}) {
-  if (items.length === 0) {
-    return <p className="py-1 text-sm text-gray-500">{emptyText}</p>;
-  }
-  return (
-    <ul className="flex flex-col gap-2 py-1">
-      {items.map((item) => {
-        const key = table === "income_items" ? "income_id" : "subscription_id";
-        const entries = allHistory
-          .filter((h) => (h as unknown as Record<string, string>)[key] === item.id)
-          .map((h) => ({ id: h.id, month: h.month, amount: Number(h.amount) }));
-        return (
-          <MonthlyItemListItem
-            key={item.id}
-            item={item}
-            history={entries}
-            table={table}
-            historyTable={historyTable}
-            historyFk={historyFk}
-            negative={negative}
-          />
-        );
-      })}
-    </ul>
   );
 }
