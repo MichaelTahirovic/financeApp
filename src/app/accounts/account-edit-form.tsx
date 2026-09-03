@@ -26,6 +26,8 @@ export default function AccountEditForm({
 }) {
   const router = useRouter();
   const [currentValue, setCurrentValue] = useState(String(account.amount));
+  // Months that exist in the DB when the editor opens — used to detect removals.
+  const [initialMonths] = useState<string[]>(history.map((h) => h.month.slice(0, 7)));
   const [rows, setRows] = useState<HistoryDraft[]>(
     history.map((h) => ({
       month: h.month.slice(0, 7),
@@ -70,6 +72,7 @@ export default function AccountEditForm({
       seen.add(r.month);
     }
 
+    // Upsert the rows still present.
     if (validRows.length > 0) {
       const { error: historyError } = await supabase.from("account_history").upsert(
         validRows.map((r) => ({
@@ -83,6 +86,26 @@ export default function AccountEditForm({
 
       if (historyError) {
         setError(historyError.message);
+        setSaving(false);
+        return;
+      }
+    }
+
+    // Delete any originally-present months the user removed.
+    const keptMonths = new Set(validRows.map((r) => r.month));
+    const removedMonths = initialMonths.filter((m) => !keptMonths.has(m));
+    if (removedMonths.length > 0) {
+      const { error: deleteError } = await supabase
+        .from("account_history")
+        .delete()
+        .eq("account_id", account.id)
+        .in(
+          "month",
+          removedMonths.map((m) => `${m}-01`)
+        );
+
+      if (deleteError) {
+        setError(deleteError.message);
         setSaving(false);
         return;
       }
@@ -148,9 +171,10 @@ export default function AccountEditForm({
             <button
               type="button"
               onClick={() => setRows(rows.filter((_, idx) => idx !== i))}
-              className="shrink-0 text-xs text-red-600"
+              aria-label="Remove month"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
             >
-              Remove
+              ×
             </button>
           </div>
         ))}

@@ -184,9 +184,10 @@ export default function AccountForm() {
             <button
               type="button"
               onClick={() => removeHistoryRow(i)}
-              className="shrink-0 text-xs text-red-600"
+              aria-label="Remove month"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
             >
-              Remove
+              ×
             </button>
           </div>
         ))}
