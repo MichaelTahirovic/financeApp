@@ -117,3 +117,17 @@ html.dark .btn-primary {
 .report .text-red-700 {
   color: #b91c1c;
 }
+.report-group td {
+  background: #e5e5e5;
+  font-weight: 600;
+  color: #333333;
+}
+.report-total td {
+  background: #f0f0f0;
+  font-weight: 700;
+}
+.report-grand-total td {
+  background: #e5e5e5;
+  font-weight: 700;
+  border-top: 2px solid #000000;
+}
