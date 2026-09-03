@@ -5,6 +5,7 @@ import type {
   FlowAccount,
   IncomeHistory,
   IncomeItem,
+  PurchaseType,
   Subscription,
   SubscriptionHistory,
 } from "@/types/finance";
@@ -196,6 +197,69 @@ export function budgetSpend(month: string, budgets: Budget[], expenses: Expense[
     spent: expenses
       .filter((e) => e.budget_id === budget.id && inMonth(e.occurred_on, month))
       .reduce((sum, e) => sum + Number(e.amount), 0),
+  }));
+}
+
+// A fixed palette; a purchase type with no stored colour gets one derived
+// deterministically from its name so colours are stable across sessions.
+const COLOR_PALETTE = [
+  "#34d399", "#60a5fa", "#f472b6", "#fbbf24", "#a78bfa",
+  "#f87171", "#4ade80", "#38bdf8", "#fb923c", "#e879f9",
+  "#2dd4bf", "#facc15", "#818cf8", "#f97316", "#22d3ee",
+];
+
+function hashString(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (h << 5) - h + s.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+}
+
+/** Deterministic colour for a purchase type name (used when none is stored). */
+export function colorForName(name: string): string {
+  return COLOR_PALETTE[hashString(name.trim().toLowerCase()) % COLOR_PALETTE.length];
+}
+
+/** Resolved colour for a purchase type: stored colour wins, else name-derived. */
+export function purchaseTypeColor(type: { name: string; color?: string | null }): string {
+  return type.color || colorForName(type.name);
+}
+
+export interface TypeSpend {
+  name: string;
+  color: string;
+  spent: number;
+}
+
+/**
+ * Per-purchase-type spend for a budget in a month, for the segmented bar.
+ * Falls back to "General" for expenses with no type.
+ */
+export function budgetSpendByType(
+  month: string,
+  budget: Budget,
+  expenses: Expense[],
+  types: PurchaseType[]
+): TypeSpend[] {
+  const budgetTypes = types.filter((t) => t.budget_id === budget.id);
+  const colorOf = new Map(budgetTypes.map((t) => [t.name, purchaseTypeColor(t)]));
+
+  const monthExpenses = expenses.filter(
+    (e) => e.budget_id === budget.id && inMonth(e.occurred_on, month)
+  );
+
+  const totals = new Map<string, number>();
+  for (const e of monthExpenses) {
+    const key = e.purchase_type || "General";
+    totals.set(key, (totals.get(key) ?? 0) + Number(e.amount));
+  }
+
+  return [...totals.entries()].map(([name, spent]) => ({
+    name,
+    color: colorOf.get(name) ?? colorForName(name),
+    spent,
   }));
 }
 

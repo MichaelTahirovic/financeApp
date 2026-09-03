@@ -65,6 +65,16 @@ export interface Budget {
   user_id: string;
   name: string;
   monthly_limit: number;
+  emoji: string | null;
+  created_at: string;
+}
+
+export interface PurchaseType {
+  id: string;
+  user_id: string;
+  budget_id: string;
+  name: string;
+  color: string;
   created_at: string;
 }
 
