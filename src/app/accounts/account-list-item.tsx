@@ -27,7 +27,8 @@ export default function AccountListItem({
 
   const entries = history.filter((h) => h.account_id === account.id);
   const monthly = effectiveMonthlyAmount(account);
-  const change = monthlyChange(account, history, now);
+  // For payable accounts the delta is negated so that increasing debt reads negative.
+  const change = monthlyChange(account, history, now) * (payable ? -1 : 1);
 
   return (
     <li className="rounded border px-3 py-2 text-sm">
@@ -46,7 +47,11 @@ export default function AccountListItem({
             className={`text-xs ${
               change > 0 ? "text-green-600" : change < 0 ? "text-red-600" : "text-gray-400"
             }`}
-            title="Monthly change vs. previous recorded month"
+            title={
+              payable
+                ? "Monthly change in debt (negative = debt increased)"
+                : "Monthly change vs. previous recorded month"
+            }
           >
             {change > 0 ? "+" : ""}
             {formatCurrency(change)}

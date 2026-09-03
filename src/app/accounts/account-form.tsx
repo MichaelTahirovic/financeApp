@@ -166,12 +166,12 @@ export default function AccountForm() {
           </button>
         </div>
         {history.map((row, i) => (
-          <div key={i} className="flex items-center gap-2">
+          <div key={i} className="flex min-w-0 flex-wrap items-center gap-2">
             <input
               type="month"
               value={row.month}
               onChange={(e) => updateHistoryRow(i, "month", e.target.value)}
-              className="rounded border px-2 py-1"
+              className="min-w-0 flex-1 rounded border px-2 py-1 dark:[color-scheme:dark]"
             />
             <input
               type="number"
@@ -179,12 +179,12 @@ export default function AccountForm() {
               placeholder="Amount"
               value={row.amount}
               onChange={(e) => updateHistoryRow(i, "amount", e.target.value)}
-              className="w-32 rounded border px-2 py-1"
+              className="w-28 min-w-0 rounded border px-2 py-1"
             />
             <button
               type="button"
               onClick={() => removeHistoryRow(i)}
-              className="text-xs text-red-600"
+              className="shrink-0 text-xs text-red-600"
             >
               Remove
             </button>
@@ -196,7 +196,7 @@ export default function AccountForm() {
       <button
         type="submit"
         disabled={saving}
-        className="rounded bg-black px-3 py-2 text-white disabled:opacity-50"
+        className="btn-primary px-3 py-2"
       >
         {saving ? "Saving..." : "Add Account"}
       </button>

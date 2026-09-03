@@ -130,12 +130,12 @@ export default function AccountEditForm({
           </button>
         </div>
         {rows.map((row, i) => (
-          <div key={i} className="flex items-center gap-2">
+          <div key={i} className="flex min-w-0 flex-wrap items-center gap-2">
             <input
               type="month"
               value={row.month}
               onChange={(e) => updateRow(i, "month", e.target.value)}
-              className="rounded border px-2 py-0.5 text-xs"
+              className="min-w-0 flex-1 rounded border px-2 py-0.5 text-xs dark:[color-scheme:dark]"
             />
             <input
               type="number"
@@ -143,12 +143,12 @@ export default function AccountEditForm({
               placeholder="Amount"
               value={row.amount}
               onChange={(e) => updateRow(i, "amount", e.target.value)}
-              className="w-28 rounded border px-2 py-0.5 text-xs"
+              className="w-24 min-w-0 rounded border px-2 py-0.5 text-xs"
             />
             <button
               type="button"
               onClick={() => setRows(rows.filter((_, idx) => idx !== i))}
-              className="text-xs text-red-600"
+              className="shrink-0 text-xs text-red-600"
             >
               Remove
             </button>
@@ -161,7 +161,7 @@ export default function AccountEditForm({
         <button
           type="submit"
           disabled={saving}
-          className="rounded bg-black px-3 py-1 text-xs text-white disabled:opacity-50"
+          className="btn-primary px-3 py-1 text-xs"
         >
           {saving ? "Saving..." : "Save"}
         </button>

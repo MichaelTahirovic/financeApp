@@ -129,7 +129,7 @@ function StatCard({
 }) {
   return (
     <div
-      className={`rounded border p-3 ${highlight ? "border-black" : ""} ${
+      className={`rounded border p-3 ${highlight ? "border-black dark:border-white" : ""} ${
         negative ? "text-red-600" : ""
       }`}
     >

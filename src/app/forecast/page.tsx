@@ -32,7 +32,7 @@ export default async function ForecastPage() {
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
       <h1 className="text-2xl font-semibold">Forecast</h1>
 
-      <div className="rounded border border-black p-4 text-center">
+      <div className="rounded border border-black p-4 text-center dark:border-white">
         <p className="text-xs uppercase text-gray-500">
           Estimated spend for {monthLabel(forecast.targetMonth)}
         </p>

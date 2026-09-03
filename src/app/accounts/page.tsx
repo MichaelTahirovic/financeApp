@@ -40,7 +40,7 @@ export default async function AccountsPage() {
 
       <h1 className="text-2xl font-semibold">Accounts</h1>
 
-      <div className="rounded border border-black p-3 text-center">
+      <div className="rounded border border-black p-3 text-center dark:border-white">
         <p className="text-xs uppercase text-gray-500">
           Net Worth (Receivable − Payable)
         </p>

@@ -146,12 +146,12 @@ export default function MonthlyItemForm({
           </button>
         </div>
         {history.map((row, i) => (
-          <div key={i} className="flex items-center gap-2">
+          <div key={i} className="flex min-w-0 flex-wrap items-center gap-2">
             <input
               type="month"
               value={row.month}
               onChange={(e) => updateHistoryRow(i, "month", e.target.value)}
-              className="rounded border px-2 py-0.5 text-xs"
+              className="min-w-0 flex-1 rounded border px-2 py-0.5 text-xs dark:[color-scheme:dark]"
             />
             <input
               type="number"
@@ -159,12 +159,12 @@ export default function MonthlyItemForm({
               placeholder="Amount"
               value={row.amount}
               onChange={(e) => updateHistoryRow(i, "amount", e.target.value)}
-              className="w-24 rounded border px-2 py-0.5 text-xs"
+              className="w-24 min-w-0 rounded border px-2 py-0.5 text-xs"
             />
             <button
               type="button"
               onClick={() => removeHistoryRow(i)}
-              className="text-xs text-red-600"
+              className="shrink-0 text-xs text-red-600"
             >
               Remove
             </button>
@@ -176,7 +176,7 @@ export default function MonthlyItemForm({
       <button
         type="submit"
         disabled={saving}
-        className="rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50"
+        className="btn-primary px-3 py-1.5 text-sm"
       >
         {saving ? "Saving..." : "Add"}
       </button>
