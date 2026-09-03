@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { formatCurrency } from "@/lib/finance/calculations";
 import type { Budget, Expense, PurchaseType } from "@/types/finance";
 import ExpenseForm from "./expense-form";
 
+const PREVIEW_COUNT = 10;
+
 /**
- * Recent purchases list. Each row: emoji, then
- * "PurchaseName - Budget . PurchaseType (Date HH:MM)", with Edit (and delete via
- * the edit form) per entry.
+ * Recent purchases preview (last 10). A footer link opens the full purchases
+ * page. Each row: emoji, "PurchaseName - Budget . PurchaseType (Date HH:MM)",
+ * with Edit (and delete via the edit form) per entry.
  */
 export default function RecentPurchases({
   expenses,
@@ -22,16 +25,28 @@ export default function RecentPurchases({
   if (expenses.length === 0) {
     return <p className="px-4 py-3 text-sm text-gray-500">No purchases logged yet.</p>;
   }
+  const shown = expenses.slice(0, PREVIEW_COUNT);
+  const hasMore = expenses.length > PREVIEW_COUNT;
+
   return (
-    <ul className="divide-y text-sm">
-      {expenses.map((e) => (
-        <PurchaseRow key={e.id} expense={e} budgets={budgets} purchaseTypes={purchaseTypes} />
-      ))}
-    </ul>
+    <>
+      <ul className="divide-y text-sm">
+        {shown.map((e) => (
+          <PurchaseRow key={e.id} expense={e} budgets={budgets} purchaseTypes={purchaseTypes} />
+        ))}
+      </ul>
+      {hasMore && (
+        <div className="border-t px-4 py-2 text-center">
+          <Link href="/purchases" className="text-sm underline">
+            Show all {expenses.length} purchases
+          </Link>
+        </div>
+      )}
+    </>
   );
 }
 
-function PurchaseRow({
+export function PurchaseRow({
   expense,
   budgets,
   purchaseTypes,
@@ -48,11 +63,11 @@ function PurchaseRow({
     <li className="px-4 py-2">
       <div className="flex items-center justify-between gap-2">
         <span className="min-w-0">
-          {budget?.emoji && <span className="mr-1 text-foreground">{budget.emoji}</span>}
+          {budget?.emoji && <span className="mr-1">{budget.emoji}</span>}
           <span className="font-bold text-foreground">{expense.name || "(unnamed)"}</span>
           {budget && <span className="text-foreground"> - {budget.name}</span>}
           {expense.purchase_type && (
-            <span className="text-gray-500"> . {expense.purchase_type}</span>
+            <span className="text-gray-500"> • {expense.purchase_type}</span>
           )}
           <span className="text-gray-400">
             {" "}({expense.occurred_on}

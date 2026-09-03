@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import {
   budgetSpend,
   currentMonth,
-  debt,
   formatCurrency,
   monthlyNetWorthDifference,
   monthlyRevenue,
@@ -67,7 +66,6 @@ export default async function Home() {
   const spend = monthlySpend(month, expenseList, subList, subHist);
   const revenue = monthlyRevenue(month, incomeList, incomeHist);
   const worth = netWorth(accountList);
-  const debtTotal = debt(accountList);
   const difference = monthlyNetWorthDifference(
     month,
     expenseList,
@@ -82,16 +80,15 @@ export default async function Home() {
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
       <h1 className="text-2xl font-semibold">Overview — {monthLabel(month)}</h1>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3">
         <StatCard label="Net Worth" value={worth} highlight />
-        <StatCard label="Monthly Spend" value={-spend} negative />
         <StatCard label="Monthly Revenue" value={revenue} />
-        <StatCard label="Debt" value={debtTotal} negative={debtTotal > 0} />
         <StatCard
           label="Net Worth Change (this month)"
           value={difference}
           negative={difference < 0}
         />
+        <StatCard label="Monthly Spend" value={-spend} negative />
       </div>
 
       <section className="rounded border">
@@ -110,6 +107,7 @@ export default async function Home() {
                 expenses={expenseList}
                 types={typeList}
                 month={month}
+                readonly
               />
             ))}
           </ul>

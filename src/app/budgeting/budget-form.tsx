@@ -6,8 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { colorForName } from "@/lib/finance/calculations";
 import type { Budget, PurchaseType } from "@/types/finance";
 
-// Monochrome symbols that inherit the theme's text colour (used like emojis).
-const EMOJI_CHOICES = ["●", "◆", "■", "▲", "★", "♥", "♦", "♣", "☀", "☂", "✈", "⚑", "⚙", "✚", "✦", "☾"];
+const EMOJI_CHOICES = ["💰", "🍔", "🏠", "🚗", "🎮", "✈️", "🛒", "💊", "🎓", "🐾", "👕", "📱", "🎁", "⚡", "📺", "🍿"];
 
 interface TypeDraft {
   id?: string; // present for existing rows being edited
@@ -24,14 +23,18 @@ export default function BudgetForm({
   budget,
   existingTypes,
   onClose,
+  availableCashFlow,
 }: {
   budget?: Budget; // when set, we're editing
   existingTypes?: PurchaseType[];
   onClose?: () => void;
+  availableCashFlow?: number; // used to resolve a percentage limit
 }) {
   const router = useRouter();
   const [name, setName] = useState(budget?.name ?? "");
   const [limit, setLimit] = useState(budget ? String(budget.monthly_limit) : "");
+  const [limitMode, setLimitMode] = useState<"dollars" | "percent">("dollars");
+  const [showLimitInfo, setShowLimitInfo] = useState(false);
   const [emoji, setEmoji] = useState(budget?.emoji ?? "");
   const [types, setTypes] = useState<TypeDraft[]>(
     (existingTypes ?? []).map((t) => ({ id: t.id, name: t.name, color: t.color }))
@@ -86,12 +89,31 @@ export default function BudgetForm({
       return;
     }
 
+    // Resolve the limit: dollars as entered, or a percentage of available cash flow.
+    let monthlyLimit: number;
+    if (limitMode === "percent") {
+      const pct = Number(limit);
+      if (isNaN(pct) || pct < 0 || pct > 100) {
+        setError("Enter a percentage between 0 and 100.");
+        setSaving(false);
+        return;
+      }
+      if (availableCashFlow === undefined) {
+        setError("Available cash flow is unknown, so a percentage limit can't be resolved.");
+        setSaving(false);
+        return;
+      }
+      monthlyLimit = Math.round(availableCashFlow * (pct / 100) * 100) / 100;
+    } else {
+      monthlyLimit = Number(limit);
+    }
+
     let budgetId = budget?.id;
 
     if (budget) {
       const { error: updateError } = await supabase
         .from("budgets")
-        .update({ name, monthly_limit: Number(limit), emoji: emoji || null })
+        .update({ name, monthly_limit: monthlyLimit, emoji: emoji || null })
         .eq("id", budget.id);
       if (updateError) {
         setError(updateError.message);
@@ -104,7 +126,7 @@ export default function BudgetForm({
         .insert({
           user_id: user.id,
           name,
-          monthly_limit: Number(limit),
+          monthly_limit: monthlyLimit,
           emoji: emoji || null,
         })
         .select("id")
@@ -157,17 +179,58 @@ export default function BudgetForm({
           onChange={(e) => setName(e.target.value)}
           className="flex-1 rounded border px-2 py-1.5"
         />
-        <input
-          type="number"
-          step="0.01"
-          min="0"
-          placeholder="Monthly limit"
-          required
-          value={limit}
-          onChange={(e) => setLimit(e.target.value)}
-          className="w-32 rounded border px-2 py-1.5"
-        />
+        <div className="flex items-center gap-1">
+          <div className="relative flex items-center">
+            <span className="pointer-events-none absolute left-2 text-sm text-gray-500">
+              {limitMode === "dollars" ? "$" : "%"}
+            </span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              max={limitMode === "percent" ? 100 : undefined}
+              placeholder={limitMode === "dollars" ? "Monthly limit" : "Percent of cash flow"}
+              required
+              value={limit}
+              onChange={(e) => setLimit(e.target.value)}
+              className={`w-36 rounded border py-1.5 pr-2 ${limitMode === "dollars" ? "pl-5" : "pl-6"}`}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setLimitMode((m) => (m === "dollars" ? "percent" : "dollars"))}
+            title="Toggle between dollars and percentage of available cash flow"
+            className="rounded border px-2 py-1.5 text-xs"
+          >
+            {limitMode === "dollars" ? "$ → %" : "% → $"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowLimitInfo((v) => !v)}
+            aria-label="About the monthly limit"
+            aria-expanded={showLimitInfo}
+            className="flex h-4 w-4 items-center justify-center rounded-full border border-gray-400 text-[10px] leading-none text-gray-500 hover:text-black dark:hover:text-white"
+          >
+            i
+          </button>
+        </div>
       </div>
+
+      {showLimitInfo && (
+        <div className="rounded border bg-neutral-50 p-2 text-xs text-gray-600 dark:bg-neutral-900 dark:text-gray-300">
+          <p>
+            The monthly limit can be a fixed dollar amount, or a percentage of your{" "}
+            <strong>available cash flow</strong> (income − payments). A percentage is converted to
+            dollars using your current cash flow when you save.
+          </p>
+          <p className="mt-1">
+            A common guide is the <strong>50/30/20 rule</strong>: ~50% needs (housing, groceries,
+            bills), ~30% wants (dining, entertainment), ~20% savings/debt. Another is the{" "}
+            <strong>60/20/20</strong> split (60% essentials, 20% discretionary, 20% goals). Use
+            these as starting points and adjust to your situation.
+          </p>
+        </div>
+      )}
 
       <div>
         <span className="mb-1 block text-sm font-medium text-gray-600 dark:text-gray-300">
@@ -179,7 +242,7 @@ export default function BudgetForm({
               key={em}
               type="button"
               onClick={() => setEmoji(emoji === em ? "" : em)}
-              className={`rounded border px-2 py-1 text-lg leading-none text-foreground ${
+              className={`rounded border px-2 py-1 text-lg leading-none ${
                 emoji === em ? "border-black bg-neutral-200 dark:border-white dark:bg-neutral-700" : ""
               }`}
             >
