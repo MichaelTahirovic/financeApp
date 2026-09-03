@@ -93,3 +93,27 @@ See [`supabase/schema_v2.sql`](./supabase/schema_v2.sql) for full definitions an
 
 - Supabase free tier: 500MB database, 50k monthly active auth users — plenty of headroom to grow.
 - Free-tier Supabase projects pause after ~1 week of no API activity; they auto-resume on the next request.
+
+## Monthly archive
+
+Each month a closing snapshot of the completed month is archived into the `monthly_snapshots`
+table (see [`supabase/schema_v9.sql`](./supabase/schema_v9.sql)). This happens automatically on
+app load via `POST /api/rollover` (idempotent — it only archives the previous month once). Live
+tables are never reset; accounts carry forward, non-recurring income/payments contribute only
+their own month, recurring items roll forward, and percentage budgets re-resolve against the new
+month's available cash flow in the snapshot.
+
+To archive automatically on the 1st even when nobody opens the app, you can schedule it with
+Supabase's pg_cron to call the endpoint, e.g. (in SQL Editor, after enabling pg_cron and
+pg_net):
+
+```sql
+select cron.schedule(
+  'monthly-rollover',
+  '0 0 1 * *',  -- midnight on the 1st of each month
+  $$ select net.http_post(url := 'https://your-app.vercel.app/api/rollover', headers := '{"Content-Type":"application/json"}'); $$
+);
+```
+
+(For multi-user unattended rollover you'd add a shared-secret bearer check to the route; the
+default on-load path covers interactive use.)
