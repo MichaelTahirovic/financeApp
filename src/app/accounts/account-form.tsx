@@ -109,10 +109,14 @@ export default function AccountForm() {
         <select
           value={kind}
           onChange={(e) => setKind(e.target.value as "receivable" | "payable")}
-          className="rounded border px-2 py-1.5"
+          className="rounded border bg-white px-2 py-1.5 text-black"
         >
-          <option value="receivable">Receivable</option>
-          <option value="payable">Payable</option>
+          <option value="receivable" className="text-black">
+            Receivable
+          </option>
+          <option value="payable" className="text-black">
+            Payable
+          </option>
         </select>
         <input
           type="number"

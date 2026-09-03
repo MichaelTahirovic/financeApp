@@ -70,10 +70,10 @@ export default function ExpenseForm({ budgets }: { budgets: Budget[] }) {
           value={budgetId}
           onChange={(e) => setBudgetId(e.target.value)}
           required
-          className="flex-1 rounded border px-2 py-1.5"
+          className="flex-1 rounded border bg-white px-2 py-1.5 text-black"
         >
           {budgets.map((b) => (
-            <option key={b.id} value={b.id}>
+            <option key={b.id} value={b.id} className="text-black">
               {b.name}
             </option>
           ))}
