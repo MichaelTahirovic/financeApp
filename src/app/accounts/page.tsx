@@ -37,6 +37,9 @@ export default async function AccountsPage() {
   const receivables = bySortOrder(visible.filter((a) => a.kind === "receivable"));
   const payables = bySortOrder(visible.filter((a) => a.kind === "payable"));
 
+  const hiddenReceivables = hidden.filter((a) => a.kind === "receivable");
+  const hiddenPayables = hidden.filter((a) => a.kind === "payable");
+
   const now = currentMonth();
   // Totals/net worth reflect only visible accounts.
   const worth = netWorth(visible);
@@ -59,11 +62,12 @@ export default async function AccountsPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         <SectionBox title="Accounts Receivable" total={receivableTotal(visible)}>
           <AccountList accounts={receivables} history={historyList} now={now} />
-          <HiddenAccounts hidden={hidden} />
+          <HiddenAccounts hidden={hiddenReceivables} />
         </SectionBox>
 
         <SectionBox title="Accounts Payable" total={payableTotal(visible)}>
           <AccountList accounts={payables} history={historyList} now={now} payable />
+          <HiddenAccounts hidden={hiddenPayables} />
         </SectionBox>
       </div>
 
