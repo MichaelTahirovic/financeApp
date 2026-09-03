@@ -70,12 +70,18 @@ export function receivableTotal(accounts: FlowAccount[]): number {
 /**
  * Monthly change for an account: effective current value minus the most recent
  * recorded previous month. Returns 0 when there is no prior month recorded.
+ * `now` should be computed once on the server and passed down so SSR and
+ * hydration agree at month boundaries.
  */
-export function monthlyChange(account: FlowAccount, history: AccountHistory[]): number {
+export function monthlyChange(
+  account: FlowAccount,
+  history: AccountHistory[],
+  now: string = currentMonth()
+): number {
   const prior = history
     .filter((h) => h.account_id === account.id)
     .map((h) => h.month.slice(0, 7))
-    .filter((m) => m < currentMonth())
+    .filter((m) => m < now)
     .sort()
     .pop();
 

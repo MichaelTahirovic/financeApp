@@ -16,16 +16,18 @@ export default function AccountListItem({
   account,
   history,
   payable,
+  now,
 }: {
   account: FlowAccount;
   history: AccountHistory[];
   payable?: boolean;
+  now: string;
 }) {
   const [editing, setEditing] = useState(false);
 
   const entries = history.filter((h) => h.account_id === account.id);
   const monthly = effectiveMonthlyAmount(account);
-  const change = monthlyChange(account, history);
+  const change = monthlyChange(account, history, now);
 
   return (
     <li className="rounded border px-3 py-2 text-sm">

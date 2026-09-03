@@ -56,18 +56,20 @@ export default function AccountEditForm({
       return;
     }
 
-    const { error: updateError } = await supabase
-      .from("flow_accounts")
-      .update({ amount: Number(currentValue) || 0 })
-      .eq("id", account.id);
-
-    if (updateError) {
-      setError(updateError.message);
-      setSaving(false);
-      return;
+    // Reject duplicate months up front — Postgres rejects a multi-row upsert
+    // where two rows target the same (account_id, month) key, which would
+    // otherwise fail after the current value was already saved.
+    const validRows = rows.filter((r) => r.month && r.amount !== "");
+    const seen = new Set<string>();
+    for (const r of validRows) {
+      if (seen.has(r.month)) {
+        setError(`Duplicate month ${r.month} — keep only one entry per month.`);
+        setSaving(false);
+        return;
+      }
+      seen.add(r.month);
     }
 
-    const validRows = rows.filter((r) => r.month && r.amount !== "");
     if (validRows.length > 0) {
       const { error: historyError } = await supabase.from("account_history").upsert(
         validRows.map((r) => ({
@@ -84,6 +86,17 @@ export default function AccountEditForm({
         setSaving(false);
         return;
       }
+    }
+
+    const { error: updateError } = await supabase
+      .from("flow_accounts")
+      .update({ amount: Number(currentValue) || 0 })
+      .eq("id", account.id);
+
+    if (updateError) {
+      setError(updateError.message);
+      setSaving(false);
+      return;
     }
 
     setSaving(false);

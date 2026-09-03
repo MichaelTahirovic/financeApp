@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SectionBox } from "@/components/section-box";
 import {
+  currentMonth,
   formatCurrency,
   netWorth,
   payableTotal,
@@ -30,6 +31,7 @@ export default async function AccountsPage() {
   const receivables = accountList.filter((a) => a.kind === "receivable");
   const payables = accountList.filter((a) => a.kind === "payable");
 
+  const now = currentMonth();
   const worth = netWorth(accountList);
 
   return (
@@ -49,11 +51,11 @@ export default async function AccountsPage() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <SectionBox title="Accounts Receivable" total={receivableTotal(accountList)}>
-          <AccountList accounts={receivables} history={historyList} />
+          <AccountList accounts={receivables} history={historyList} now={now} />
         </SectionBox>
 
         <SectionBox title="Accounts Payable" total={payableTotal(accountList)}>
-          <AccountList accounts={payables} history={historyList} payable />
+          <AccountList accounts={payables} history={historyList} now={now} payable />
         </SectionBox>
       </div>
 
@@ -66,10 +68,12 @@ function AccountList({
   accounts,
   history,
   payable,
+  now,
 }: {
   accounts: FlowAccount[];
   history: AccountHistory[];
   payable?: boolean;
+  now: string;
 }) {
   if (accounts.length === 0) {
     return <p className="py-1 text-sm text-gray-500">None yet.</p>;
@@ -77,7 +81,7 @@ function AccountList({
   return (
     <ul className="flex flex-col gap-2 py-1">
       {accounts.map((a) => (
-        <AccountListItem key={a.id} account={a} history={history} payable={payable} />
+        <AccountListItem key={a.id} account={a} history={history} payable={payable} now={now} />
       ))}
     </ul>
   );
