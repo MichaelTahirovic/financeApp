@@ -64,11 +64,13 @@ export default async function BudgetingPage() {
         </p>
       </div>
 
-      <section className="relative rounded border">
-        <CardAddToggle title="Add Budget">
-          <BudgetForm availableCashFlow={availableCashFlow} />
-        </CardAddToggle>
-        <h2 className="border-b px-4 py-2 text-lg font-medium">Budgets</h2>
+      <section className="rounded border">
+        <h2 className="flex items-center justify-between gap-2 border-b px-4 py-2 text-lg font-medium">
+          <span>Budgets</span>
+          <CardAddToggle title="Add Budget">
+            <BudgetForm availableCashFlow={availableCashFlow} />
+          </CardAddToggle>
+        </h2>
         <div className="px-4 py-2">
           {rows.length === 0 ? (
             <p className="py-1 text-sm text-gray-500">No budgets yet.</p>
@@ -94,11 +96,13 @@ export default async function BudgetingPage() {
         </div>
       </section>
 
-      <section className="relative rounded border">
-        <CardAddToggle title="Log a Purchase">
-          <ExpenseForm budgets={budgetList} purchaseTypes={typeList} />
-        </CardAddToggle>
-        <h2 className="border-b px-4 py-2 text-lg font-medium">Recent Purchases</h2>
+      <section className="rounded border">
+        <h2 className="flex items-center justify-between gap-2 border-b px-4 py-2 text-lg font-medium">
+          <span>Recent Purchases</span>
+          <CardAddToggle title="Log a Purchase">
+            <ExpenseForm budgets={budgetList} purchaseTypes={typeList} />
+          </CardAddToggle>
+        </h2>
         <PurchaseSelectionProvider budgets={budgetList} purchaseTypes={typeList} expenses={recent}>
           <RecentPurchases expenses={recent} budgets={budgetList} purchaseTypes={typeList} />
         </PurchaseSelectionProvider>

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* Light (default) */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -13,13 +14,16 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    color-scheme: dark;
-  }
+/* Dark when the user/system preference resolves to dark. The .dark class is
+   set on <html> by the theme init script (Preferences: Light / Dark / Auto). */
+html.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  color-scheme: dark;
 }
+
+/* Tell Tailwind's dark: variant to follow the .dark class. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 body {
   background: var(--background);
@@ -36,9 +40,80 @@ body {
 .btn-primary:disabled {
   opacity: 0.5;
 }
-@media (prefers-color-scheme: dark) {
-  .btn-primary {
-    background: #fff;
-    color: #000;
+html.dark .btn-primary {
+  background: #fff;
+  color: #000;
+}
+
+/* Print / PDF report: force a white background with the restricted palette
+   (black, grey, white, green, red) and hide interactive controls. */
+@media print {
+  .no-print {
+    display: none !important;
   }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  html.dark {
+    --background: #ffffff;
+    --foreground: #000000;
+    color-scheme: light;
+  }
+}
+
+/* Report styling (on-screen preview + print/PDF share this look). */
+.report {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #cccccc;
+  border-radius: 0.375rem;
+  padding: 1rem;
+}
+.report-section {
+  margin-bottom: 1.25rem;
+}
+.report-h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  border-bottom: 1px solid #cccccc;
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+.report-sub {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #333333;
+  margin-bottom: 0.375rem;
+}
+.report-h4 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #333333;
+  margin-top: 0.5rem;
+}
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.report-table th,
+.report-table td {
+  border: 1px solid #cccccc;
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+}
+.report-table th {
+  background: #f0f0f0;
+  font-weight: 600;
+}
+.report-empty {
+  font-size: 0.8rem;
+  color: #666666;
+}
+.report .text-green-700 {
+  color: #15803d;
+}
+.report .text-red-700 {
+  color: #b91c1c;
 }

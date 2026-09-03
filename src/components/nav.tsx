@@ -1,33 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { usePathname } from "next/navigation";
+import AccountMenu from "./account-menu";
 
 const LINKS = [
   { href: "/", label: "Home" },
   { href: "/accounts", label: "Accounts" },
   { href: "/monthly-items", label: "Monthly Items" },
   { href: "/budgeting", label: "Budgeting" },
-  { href: "/forecast", label: "Forecast" },
+  { href: "/forecast", label: "Forecast (Beta)" },
 ];
 
 export default function Nav() {
   const pathname = usePathname();
-  const router = useRouter();
 
   // Hide nav on auth pages
   if (pathname.startsWith("/login") || pathname.startsWith("/signup")) return null;
 
-  async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
-
   return (
-    <nav className="sticky top-0 z-10 border-b bg-background">
+    <nav className="no-print sticky top-0 z-10 border-b bg-background">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
         <div className="flex flex-wrap gap-1">
           {LINKS.map((link) => {
@@ -47,9 +39,7 @@ export default function Nav() {
             );
           })}
         </div>
-        <button onClick={handleSignOut} className="rounded border px-3 py-1 text-sm">
-          Sign out
-        </button>
+        <AccountMenu />
       </div>
     </nav>
   );
