@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { colorForName } from "@/lib/finance/calculations";
 import type { Budget, PurchaseType } from "@/types/finance";
 
-const EMOJI_CHOICES = ["💰", "🍔", "🏠", "🚗", "🎮", "✈️", "🛒", "💊", "🎓", "🐾", "👕", "📱", "🎁", "⚡", "📺", "🍿"];
+// Monochrome symbols that inherit the theme's text colour (used like emojis).
+const EMOJI_CHOICES = ["●", "◆", "■", "▲", "★", "♥", "♦", "♣", "☀", "☂", "✈", "⚑", "⚙", "✚", "✦", "☾"];
 
 interface TypeDraft {
   id?: string; // present for existing rows being edited
@@ -178,7 +179,7 @@ export default function BudgetForm({
               key={em}
               type="button"
               onClick={() => setEmoji(emoji === em ? "" : em)}
-              className={`rounded border px-2 py-1 text-lg ${
+              className={`rounded border px-2 py-1 text-lg leading-none text-foreground ${
                 emoji === em ? "border-black bg-neutral-200 dark:border-white dark:bg-neutral-700" : ""
               }`}
             >

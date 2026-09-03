@@ -86,5 +86,6 @@ export interface Expense {
   name: string | null;
   purchase_type: string | null;
   occurred_on: string;
+  occurred_time: string | null;
   created_at: string;
 }

@@ -4,41 +4,83 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { colorForName } from "@/lib/finance/calculations";
-import type { Budget, PurchaseType } from "@/types/finance";
+import type { Budget, Expense, PurchaseType } from "@/types/finance";
 
 const NEW_TYPE = "__new__";
 
+function nowTime(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 /**
- * Log a purchase against a budget. The purchase-type input is a dropdown of the
- * selected budget's types plus a "New type..." option that saves a new type to
- * that budget's list.
+ * Log a new purchase, or edit/delete an existing one when `expense` is provided.
+ * The purchase-type input is a dropdown of the selected budget's types plus a
+ * "New type..." option that saves a new type to that budget's list.
  */
 export default function ExpenseForm({
   budgets,
   purchaseTypes,
+  expense,
+  onClose,
 }: {
   budgets: Budget[];
   purchaseTypes: PurchaseType[];
+  expense?: Expense;
+  onClose?: () => void;
 }) {
   const router = useRouter();
-  const [budgetId, setBudgetId] = useState(budgets[0]?.id ?? "");
-  const [amount, setAmount] = useState("");
-  const [name, setName] = useState("");
-  const [typeChoice, setTypeChoice] = useState("General");
+  const isEdit = Boolean(expense);
+
+  const [budgetId, setBudgetId] = useState(expense?.budget_id ?? budgets[0]?.id ?? "");
+  const [amount, setAmount] = useState(expense ? String(expense.amount) : "");
+  const [name, setName] = useState(expense?.name ?? "");
+  const [typeChoice, setTypeChoice] = useState(expense?.purchase_type ?? "General");
   const [newTypeName, setNewTypeName] = useState("");
-  const [occurredOn, setOccurredOn] = useState(() => new Date().toISOString().slice(0, 10));
+  const [occurredOn, setOccurredOn] = useState(
+    expense?.occurred_on ?? new Date().toISOString().slice(0, 10)
+  );
+  const [occurredTime, setOccurredTime] = useState(
+    expense?.occurred_time?.slice(0, 5) ?? nowTime()
+  );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const typesForBudget = useMemo(
     () => purchaseTypes.filter((t) => t.budget_id === budgetId),
     [purchaseTypes, budgetId]
   );
 
+  // In edit mode, an existing type that isn't in the list still shows selected.
+  const knownChoices = useMemo(() => {
+    const names = new Set(["General", ...typesForBudget.map((t) => t.name)]);
+    if (typeChoice !== NEW_TYPE && !names.has(typeChoice)) names.add(typeChoice);
+    return [...names];
+  }, [typesForBudget, typeChoice]);
+
   function onBudgetChange(id: string) {
     setBudgetId(id);
     setTypeChoice("General");
     setNewTypeName("");
+  }
+
+  async function resolvePurchaseType(supabase: ReturnType<typeof createClient>, userId: string) {
+    let purchaseType = typeChoice === NEW_TYPE ? newTypeName.trim() : typeChoice;
+    if (typeChoice === NEW_TYPE) {
+      if (!purchaseType) throw new Error("Enter a name for the new purchase type.");
+      const { error: typeError } = await supabase.from("purchase_types").upsert(
+        {
+          user_id: userId,
+          budget_id: budgetId,
+          name: purchaseType,
+          color: colorForName(purchaseType),
+        },
+        { onConflict: "budget_id,name" }
+      );
+      if (typeError) throw new Error(typeError.message);
+    }
+    return purchaseType;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -60,49 +102,49 @@ export default function ExpenseForm({
       return;
     }
 
-    // Resolve the purchase type, creating a new one for this budget if needed.
-    let purchaseType = typeChoice === NEW_TYPE ? newTypeName.trim() : typeChoice;
-    if (typeChoice === NEW_TYPE) {
-      if (!purchaseType) {
-        setError("Enter a name for the new purchase type.");
-        setSaving(false);
-        return;
-      }
-      const { error: typeError } = await supabase.from("purchase_types").upsert(
-        {
-          user_id: user.id,
-          budget_id: budgetId,
-          name: purchaseType,
-          color: colorForName(purchaseType),
-        },
-        { onConflict: "budget_id,name" }
-      );
-      if (typeError) {
-        setError(typeError.message);
-        setSaving(false);
-        return;
-      }
+    let purchaseType: string;
+    try {
+      purchaseType = await resolvePurchaseType(supabase, user.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save purchase type.");
+      setSaving(false);
+      return;
     }
-    if (purchaseType === "General") purchaseType = "General";
 
-    const { error } = await supabase.from("expenses").insert({
-      user_id: user.id,
+    const payload = {
       budget_id: budgetId,
       amount: Number(amount),
       name: name || null,
       purchase_type: purchaseType,
       occurred_on: occurredOn,
-    });
+      occurred_time: occurredTime ? `${occurredTime}:00` : null,
+    };
+
+    const { error } = isEdit
+      ? await supabase.from("expenses").update(payload).eq("id", expense!.id)
+      : await supabase.from("expenses").insert({ ...payload, user_id: user.id });
 
     setSaving(false);
     if (error) {
       setError(error.message);
       return;
     }
-    setAmount("");
-    setName("");
-    setTypeChoice("General");
-    setNewTypeName("");
+    if (onClose) onClose();
+    router.refresh();
+  }
+
+  async function handleDelete() {
+    if (!expense) return;
+    setDeleting(true);
+    setError(null);
+    const supabase = createClient();
+    const { error } = await supabase.from("expenses").delete().eq("id", expense.id);
+    setDeleting(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    if (onClose) onClose();
     router.refresh();
   }
 
@@ -144,12 +186,9 @@ export default function ExpenseForm({
           onChange={(e) => setTypeChoice(e.target.value)}
           className="flex-1 rounded border bg-white px-2 py-1.5 text-black"
         >
-          <option value="General" className="text-black">
-            General
-          </option>
-          {typesForBudget.map((t) => (
-            <option key={t.id} value={t.name} className="text-black">
-              {t.name}
+          {knownChoices.map((t) => (
+            <option key={t} value={t} className="text-black">
+              {t}
             </option>
           ))}
           <option value={NEW_TYPE} className="text-black">
@@ -182,12 +221,35 @@ export default function ExpenseForm({
           onChange={(e) => setOccurredOn(e.target.value)}
           className="rounded border px-2 py-1.5 dark:[color-scheme:dark]"
         />
+        <input
+          type="time"
+          value={occurredTime}
+          onChange={(e) => setOccurredTime(e.target.value)}
+          className="rounded border px-2 py-1.5 dark:[color-scheme:dark]"
+        />
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <button type="submit" disabled={saving} className="btn-primary px-3 py-2">
-        {saving ? "Saving..." : "Log Purchase"}
-      </button>
+      <div className="flex gap-2">
+        <button type="submit" disabled={saving} className="btn-primary px-3 py-2">
+          {saving ? "Saving..." : isEdit ? "Save Purchase" : "Log Purchase"}
+        </button>
+        {isEdit && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="rounded border border-red-600 px-3 py-2 text-sm text-red-600 hover:bg-red-600 hover:text-white disabled:opacity-50"
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </button>
+        )}
+        {onClose && (
+          <button type="button" onClick={onClose} className="rounded border px-3 py-2 text-sm">
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   );
 }

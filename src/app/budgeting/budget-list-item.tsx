@@ -32,14 +32,9 @@ export default function BudgetListItem({
   return (
     <li className="rounded border px-3 py-2 text-sm">
       <div className="flex items-center justify-between gap-2">
-        <span className="min-w-0">
-          {budget.emoji && <span className="mr-1">{budget.emoji}</span>}
-          {budget.name}
-        </span>
-        <span className="flex shrink-0 items-center gap-2">
-          <span className={over ? "font-semibold text-red-600" : ""}>
-            {formatCurrency(spent)} / {formatCurrency(limit)}
-          </span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          {budget.emoji && <span className="text-foreground">{budget.emoji}</span>}
+          <span className="font-bold text-foreground">{budget.name}</span>
           <button
             type="button"
             onClick={() => setEditing((v) => !v)}
@@ -47,6 +42,9 @@ export default function BudgetListItem({
           >
             {editing ? "Close" : "Edit"}
           </button>
+        </span>
+        <span className={over ? "shrink-0 font-semibold text-red-600" : "shrink-0"}>
+          {formatCurrency(spent)} / {formatCurrency(limit)}
         </span>
       </div>
 

@@ -11,6 +11,7 @@ import CardAddToggle from "@/components/card-add-toggle";
 import BudgetForm from "./budget-form";
 import ExpenseForm from "./expense-form";
 import BudgetListItem from "./budget-list-item";
+import RecentPurchases from "./recent-purchases";
 
 export default async function BudgetingPage() {
   const supabase = await createClient();
@@ -72,28 +73,7 @@ export default async function BudgetingPage() {
           <ExpenseForm budgets={budgetList} purchaseTypes={typeList} />
         </CardAddToggle>
         <h2 className="border-b px-4 py-2 text-lg font-medium">Recent Purchases</h2>
-        {recent.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-gray-500">No purchases logged yet.</p>
-        ) : (
-          <ul className="divide-y text-sm">
-            {recent.map((e) => {
-              const budget = budgetList.find((b) => b.id === e.budget_id);
-              return (
-                <li key={e.id} className="flex justify-between px-4 py-2">
-                  <span>
-                    {budget?.emoji && <span className="mr-1">{budget.emoji}</span>}
-                    {e.occurred_on} — {e.name || "(unnamed)"}
-                    {budget && <span className="text-gray-500"> · {budget.name}</span>}
-                    {e.purchase_type && (
-                      <span className="text-gray-400"> · {e.purchase_type}</span>
-                    )}
-                  </span>
-                  <span className="text-red-600">{formatCurrency(Number(e.amount))}</span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <RecentPurchases expenses={recent} budgets={budgetList} purchaseTypes={typeList} />
       </section>
     </main>
   );

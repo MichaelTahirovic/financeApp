@@ -17,9 +17,11 @@ import type {
   FlowAccount,
   IncomeHistory,
   IncomeItem,
+  PurchaseType,
   Subscription,
   SubscriptionHistory,
 } from "@/types/finance";
+import BudgetListItem from "./budgeting/budget-list-item";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -41,6 +43,7 @@ export default async function Home() {
     { data: incomeHistory },
     { data: subscriptions },
     { data: subscriptionHistory },
+    { data: purchaseTypes },
   ] = await Promise.all([
     supabase.from("flow_accounts").select("*"),
     supabase.from("budgets").select("*").order("name"),
@@ -49,6 +52,7 @@ export default async function Home() {
     supabase.from("income_history").select("*"),
     supabase.from("subscriptions").select("*"),
     supabase.from("subscription_history").select("*"),
+    supabase.from("purchase_types").select("*"),
   ]);
 
   const accountList = (accounts ?? []) as FlowAccount[];
@@ -58,6 +62,7 @@ export default async function Home() {
   const incomeHist = (incomeHistory ?? []) as IncomeHistory[];
   const subList = (subscriptions ?? []) as Subscription[];
   const subHist = (subscriptionHistory ?? []) as SubscriptionHistory[];
+  const typeList = (purchaseTypes ?? []) as PurchaseType[];
 
   const spend = monthlySpend(month, expenseList, subList, subHist);
   const revenue = monthlyRevenue(month, incomeList, incomeHist);
@@ -96,19 +101,17 @@ export default async function Home() {
             No budgets yet — create some on the Budgeting page.
           </p>
         ) : (
-          <ul className="divide-y">
-            {budgetRows.map(({ budget, spent }) => {
-              const over = spent > Number(budget.monthly_limit);
-              return (
-                <li key={budget.id} className="flex items-center justify-between px-4 py-2 text-sm">
-                  <span>{budget.name}</span>
-                  <span className={over ? "font-semibold text-red-600" : ""}>
-                    {formatCurrency(spent)} / {formatCurrency(Number(budget.monthly_limit))}
-                    {over && " (over)"}
-                  </span>
-                </li>
-              );
-            })}
+          <ul className="flex flex-col gap-2 px-4 py-2">
+            {budgetRows.map(({ budget, spent }) => (
+              <BudgetListItem
+                key={budget.id}
+                budget={budget}
+                spent={spent}
+                expenses={expenseList}
+                types={typeList}
+                month={month}
+              />
+            ))}
           </ul>
         )}
       </section>
