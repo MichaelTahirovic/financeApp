@@ -2,23 +2,35 @@
 
 /* Light (default) */
 :root {
-  --background: #ffffff;
+  --background: #f6f5f1; /* soft ledger paper */
   --foreground: #171717;
+  --card: #ffffff;
+  --card-shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 4px 16px rgb(0 0 0 / 0.06);
+  --muted: #6b7280;
+  --line: #e7e5e0;
   color-scheme: light;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-ledger: var(--font-ledger);
 }
 
 /* Dark when the user/system preference resolves to dark. The .dark class is
    set on <html> by the theme init script (Preferences: Light / Dark / Auto). */
 html.dark {
-  --background: #0a0a0a;
+  --background: #0f0f0e;
   --foreground: #ededed;
+  --card: #1a1a19;
+  --card-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px rgb(0 0 0 / 0.4);
+  --muted: #9ca3af;
+  --line: #2a2a29;
   color-scheme: dark;
 }
 
@@ -28,12 +40,25 @@ html.dark {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Ledger display font for headings and figures (old-school accounting). */
+h1, h2, h3, .ledger {
+  font-family: var(--font-ledger), Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+/* Borderless card: soft surface + shadow instead of a hard border. */
+.card {
+  background: var(--card);
+  border-radius: 0.75rem;
+  box-shadow: var(--card-shadow);
 }
 
 /* Primary action button that inverts with the theme. */
 .btn-primary {
-  border-radius: 0.25rem;
+  border-radius: 0.5rem;
   background: #000;
   color: #fff;
 }
@@ -68,8 +93,8 @@ html.dark .btn-primary {
   .report {
     border: none;
     padding: 0;
+    box-shadow: none;
   }
-  /* Shrink wide month tables so all columns fit the landscape page. */
   .report-table {
     font-size: 0.65rem;
     table-layout: auto;
@@ -85,8 +110,7 @@ html.dark .btn-primary {
 .report {
   background: #ffffff;
   color: #000000;
-  border: 1px solid #cccccc;
-  border-radius: 0.375rem;
+  border-radius: 0.5rem;
   padding: 1rem;
 }
 .report-section {

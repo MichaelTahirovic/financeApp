@@ -21,6 +21,7 @@ import type {
   SubscriptionHistory,
 } from "@/types/finance";
 import BudgetListItem from "./budgeting/budget-list-item";
+import Greeting from "@/components/greeting";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -78,7 +79,7 @@ export default async function Home() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
-      <h1 className="text-2xl font-semibold">Overview — {monthLabel(month)}</h1>
+      <Greeting />
 
       <div className="grid grid-cols-2 gap-3">
         <StatCard label="Net Worth" value={worth} highlight />
@@ -91,10 +92,12 @@ export default async function Home() {
         <StatCard label="Monthly Spend" value={-spend} negative />
       </div>
 
-      <section className="rounded border">
-        <h2 className="border-b px-4 py-2 text-lg font-medium">Budgets this month</h2>
+      <section className="card">
+        <h2 className="border-b border-line px-4 py-2 text-lg font-medium">
+          Budgets — {monthLabel(month)}
+        </h2>
         {budgetRows.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-gray-500">
+          <p className="px-4 py-3 text-sm text-muted">
             No budgets yet — create some on the Budgeting page.
           </p>
         ) : (
@@ -132,12 +135,12 @@ function StatCard({
 }) {
   return (
     <div
-      className={`rounded border p-3 ${highlight ? "border-black dark:border-white" : ""} ${
+      className={`card p-4 ${highlight ? "ring-1 ring-foreground/20" : ""} ${
         negative ? "text-red-600" : positive ? "text-green-600" : ""
       }`}
     >
-      <p className="text-xs uppercase text-gray-500">{label}</p>
-      <p className="text-xl font-bold">{formatCurrency(value)}</p>
+      <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
+      <p className="ledger text-2xl font-semibold">{formatCurrency(value)}</p>
     </div>
   );
 }

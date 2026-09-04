@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 export default function AccountMenu() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [nickname, setNickname] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -18,6 +19,10 @@ export default function AccountMenu() {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
     document.addEventListener("mousedown", onClickOutside);
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setNickname(((user?.user_metadata?.nickname as string | undefined) ?? "").trim());
+    });
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
@@ -29,7 +34,8 @@ export default function AccountMenu() {
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative flex items-center gap-2">
+      {nickname && <span className="text-sm font-medium">{nickname}</span>}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

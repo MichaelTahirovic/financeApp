@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { applyTheme, getStoredTheme, initThemeListener } from "@/lib/theme";
+import { createClient } from "@/lib/supabase/client";
 
 type ThemeMode = "light" | "dark" | "auto";
 
@@ -13,10 +14,16 @@ const OPTIONS: { value: ThemeMode; label: string; description: string }[] = [
 
 export default function PreferencesPage() {
   const [mode, setMode] = useState<ThemeMode>("auto");
+  const [nickname, setNickname] = useState("");
+  const [nicknameSaved, setNicknameSaved] = useState(false);
 
   useEffect(() => {
     setMode(getStoredTheme());
     initThemeListener();
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setNickname(((user?.user_metadata?.nickname as string | undefined) ?? "").trim());
+    });
   }, []);
 
   function choose(value: ThemeMode) {
@@ -24,12 +31,42 @@ export default function PreferencesPage() {
     applyTheme(value);
   }
 
+  async function saveNickname() {
+    const supabase = createClient();
+    await supabase.auth.updateUser({ data: { nickname: nickname.trim() } });
+    setNicknameSaved(true);
+    setTimeout(() => setNicknameSaved(false), 2000);
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4">
       <h1 className="text-2xl font-semibold">Preferences</h1>
 
-      <section className="rounded border">
-        <h2 className="border-b px-4 py-2 text-lg font-medium">Theme</h2>
+      <section className="card">
+        <h2 className="border-b border-line px-4 py-2 text-lg font-medium">Profile</h2>
+        <div className="flex flex-col gap-2 p-4">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="w-24 text-muted">Nickname</span>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="What should we call you?"
+              className="min-w-0 flex-1 rounded border px-2 py-1.5"
+            />
+            <button onClick={saveNickname} className="btn-primary px-3 py-1.5 text-sm">
+              Save
+            </button>
+          </label>
+          {nicknameSaved && <p className="text-xs text-green-600">Saved.</p>}
+          <p className="text-xs text-muted">
+            Used in the home greeting and shown next to the account icon.
+          </p>
+        </div>
+      </section>
+
+      <section className="card">
+        <h2 className="border-b border-line px-4 py-2 text-lg font-medium">Theme</h2>
         <div className="flex flex-col gap-2 p-4">
           {OPTIONS.map((opt) => (
             <label

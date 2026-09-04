@@ -17,14 +17,14 @@ export function SectionBox({
   children: ReactNode;
 }) {
   return (
-    <section className="flex flex-col rounded border">
-      <h2 className="flex items-center justify-between gap-2 border-b px-4 py-2 text-lg font-medium">
+    <section className="card flex flex-col">
+      <h2 className="flex items-center justify-between gap-2 border-b border-line px-4 py-2 text-lg font-medium">
         <span className="min-w-0">{title}</span>
         {headerActions && <span className="flex shrink-0 items-center gap-1">{headerActions}</span>}
       </h2>
       <div className="flex-1 px-4 py-2">{children}</div>
       {total !== undefined && (
-        <div className="flex justify-between border-t px-4 py-2 font-bold">
+        <div className="flex justify-between border-t border-line px-4 py-2 font-bold">
           <span>Total</span>
           <span>{formatCurrency(total)}</span>
         </div>
