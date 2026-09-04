@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import AuthSplit from "@/components/auth-split";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,9 +32,9 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-6">
+    <AuthSplit>
       <h1 className="text-2xl font-semibold">Log in</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
         <input
           type="email"
           placeholder="Email"
@@ -59,12 +60,12 @@ export default function LoginPage() {
           {loading ? "Logging in..." : "Log in"}
         </button>
       </form>
-      <p className="text-sm">
+      <p className="mt-4 text-sm">
         Don&apos;t have an account?{" "}
         <Link href="/signup" className="underline">
           Sign up
         </Link>
       </p>
-    </main>
+    </AuthSplit>
   );
 }
