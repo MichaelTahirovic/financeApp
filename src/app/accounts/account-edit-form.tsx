@@ -27,6 +27,10 @@ export default function AccountEditForm({
   const router = useRouter();
   const [currentValue, setCurrentValue] = useState(String(account.amount));
   const [hidden, setHidden] = useState(account.hidden);
+  const [isAnnual, setIsAnnual] = useState(account.is_annual_subscription);
+  const [annualAmount, setAnnualAmount] = useState(
+    account.annual_amount != null ? String(account.annual_amount) : ""
+  );
   // Months that exist in the DB when the editor opens — used to detect removals.
   const [initialMonths] = useState<string[]>(history.map((h) => h.month.slice(0, 7)));
   const [rows, setRows] = useState<HistoryDraft[]>(
@@ -131,7 +135,12 @@ export default function AccountEditForm({
 
     const { error: updateError } = await supabase
       .from("flow_accounts")
-      .update({ amount: Number(currentValue) || 0, hidden })
+      .update({
+        amount: Number(currentValue) || 0,
+        hidden,
+        is_annual_subscription: account.kind === "payable" && isAnnual,
+        annual_amount: account.kind === "payable" && isAnnual ? Number(annualAmount) || 0 : null,
+      })
       .eq("id", account.id);
 
     if (updateError) {
@@ -158,6 +167,35 @@ export default function AccountEditForm({
           className="w-32 rounded border px-2 py-1"
         />
       </label>
+
+      {account.kind === "payable" && (
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={isAnnual}
+              onChange={(e) => setIsAnnual(e.target.checked)}
+            />
+            Annual Payment?
+          </label>
+          {isAnnual && (
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Annual cost"
+              required
+              value={annualAmount}
+              onChange={(e) => setAnnualAmount(e.target.value)}
+              className="w-32 rounded border px-2 py-1"
+            />
+          )}
+          {isAnnual && annualAmount && (
+            <span className="text-xs text-gray-500">
+              accrues {(Number(annualAmount) / 12).toFixed(2)}/month
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col gap-1">
         <label className="flex items-center gap-2 text-sm">
