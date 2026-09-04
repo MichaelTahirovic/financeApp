@@ -41,7 +41,7 @@ export default function AccountMenu() {
         onClick={() => setOpen((v) => !v)}
         aria-label="Account"
         aria-expanded={open}
-        className="flex h-8 w-8 items-center justify-center rounded-full border text-foreground"
+        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border text-foreground"
       >
         {/* user symbol */}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
@@ -51,7 +51,7 @@ export default function AccountMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded border bg-background shadow-lg">
+        <div className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded border bg-background shadow-lg">
           <Link
             href="/preferences"
             onClick={() => setOpen(false)}
