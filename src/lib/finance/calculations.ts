@@ -51,13 +51,24 @@ export function annualAccrual(account: FlowAccount): number {
   return Number(account.annual_amount) / 12;
 }
 
+/** Whole months elapsed from a YYYY-MM month to now (0 for the current month). */
+export function monthsSince(month: string): number {
+  const [y, m] = month.split("-").map(Number);
+  const now = new Date();
+  return (now.getFullYear() - y) * 12 + (now.getMonth() + 1 - m);
+}
+
 /**
- * Effective monthly payable amount for a flow account:
- * annual subscriptions contribute their 1/12 accrual, everything else its amount.
+ * Effective current amount for a flow account.
+ * Annual-subscription payables accrue their 1/12 monthly amount on top of the
+ * starting value (the entered current amount, or 0), compounding by the number
+ * of months since the account was created. Everything else is just its amount.
  */
 export function effectiveMonthlyAmount(account: FlowAccount): number {
   if (account.kind === "payable" && account.is_annual_subscription) {
-    return annualAccrual(account);
+    const start = Number(account.amount) || 0;
+    const monthsElapsed = Math.max(0, monthsSince(account.created_at.slice(0, 7)));
+    return start + annualAccrual(account) * monthsElapsed;
   }
   return Number(account.amount);
 }
