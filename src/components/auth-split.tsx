@@ -14,7 +14,7 @@ export default function AuthSplit({ children }: { children: ReactNode }) {
       >
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative">
-          <h1 className="ledger text-4xl font-bold md:text-5xl">Moneywatch</h1>
+          <h1 className="ledger text-4xl font-bold md:text-5xl">Super Epic Money Budget Thing 9000</h1>
           <p className="mt-2 max-w-md text-sm text-white/90 md:mt-4 md:text-lg">
             A private, cross-platform finance tracker. Keep an eye on your accounts,
             monthly income and payments, budgets, and spending — all in one ledger.
