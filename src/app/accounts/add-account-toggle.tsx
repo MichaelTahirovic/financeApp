@@ -1,13 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import type { FlowAccountKind } from "@/types/finance";
 import AccountForm from "./account-form";
 
 /**
- * "+" button (top-right of the Accounts page content) that opens the Add Account
- * form as a floating modal over a grey translucent backdrop.
+ * "+" button pinned to a card's top-right corner that opens that card's
+ * add-account form as a floating modal over a translucent backdrop (matching
+ * the Income / Payment add buttons on the Monthly Items page).
  */
-export default function AddAccountToggle() {
+export default function AddAccountToggle({
+  title,
+  kind,
+}: {
+  title: string;
+  kind: FlowAccountKind;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -15,8 +23,8 @@ export default function AddAccountToggle() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label={open ? "Close add account form" : "Add account"}
-        className="fixed right-4 top-16 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-black text-2xl leading-none text-white shadow-lg dark:bg-white dark:text-black"
+        aria-label={open ? `Close add ${title} form` : `Add ${title}`}
+        className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-lg leading-none text-white dark:bg-white dark:text-black"
       >
         {open ? "×" : "+"}
       </button>
@@ -27,12 +35,16 @@ export default function AddAccountToggle() {
           onClick={() => setOpen(false)}
         >
           <section
-            className="w-full max-w-lg rounded border bg-background shadow-xl"
+            className="w-full max-w-md rounded border bg-background shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="border-b px-4 py-2 text-lg font-medium">Add Account</h2>
+            <h2 className="border-b px-4 py-2 text-lg font-medium">Add {title}</h2>
             <div className="p-4">
-              <AccountForm />
+              <AccountForm
+                defaultKind={kind}
+                lockedKind
+                onSuccess={() => setOpen(false)}
+              />
             </div>
           </section>
         </div>

@@ -30,7 +30,7 @@ export interface HistoryTableData {
   netWorth: number[];
 }
 
-/** Accounts history: rows = accounts (receivable then payable), columns = months. */
+/** Accounts history: rows = visible accounts (receivable then payable), columns = months. */
 export function accountsHistory(data: ExportData, monthCount: number): HistoryTableData {
   const months = lastMonths(monthCount);
   const now = currentMonth();
@@ -43,8 +43,9 @@ export function accountsHistory(data: ExportData, monthCount: number): HistoryTa
     return h ? Number(h.amount) : null;
   }
 
-  const receivables = data.accounts.filter((a) => a.kind === "receivable");
-  const payables = data.accounts.filter((a) => a.kind === "payable");
+  const visible = data.accounts.filter((a) => !a.hidden);
+  const receivables = visible.filter((a) => a.kind === "receivable");
+  const payables = visible.filter((a) => a.kind === "payable");
 
   const receivableRows = receivables.map((a) => ({
     label: a.name,
@@ -78,7 +79,7 @@ export interface MonthlyItemsHistoryData {
   cashFlow: number[];
 }
 
-/** Monthly items history: rows = income then payments, columns = months. */
+/** Monthly items history: rows = visible income then payments, columns = months. */
 export function monthlyItemsHistory(data: ExportData, monthCount: number): MonthlyItemsHistoryData {
   const months = lastMonths(monthCount);
   const now = currentMonth();
@@ -98,11 +99,14 @@ export function monthlyItemsHistory(data: ExportData, monthCount: number): Month
     return h ? Number(h.amount) : null;
   }
 
-  const incomeRows = data.incomeItems.map((i) => ({
+  const visibleIncome = data.incomeItems.filter((i) => !i.hidden);
+  const visibleSubs = data.subscriptions.filter((s) => !s.hidden);
+
+  const incomeRows = visibleIncome.map((i) => ({
     label: i.name,
     values: months.map((m) => incomeFor(i, m)),
   }));
-  const paymentRows = data.subscriptions.map((s) => ({
+  const paymentRows = visibleSubs.map((s) => ({
     label: s.name,
     negative: true,
     values: months.map((m) => {

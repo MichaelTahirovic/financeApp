@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/monthly-items", label: "Monthly Items" },
   { href: "/budgeting", label: "Budgeting" },
   { href: "/forecast", label: "Forecast (Beta)" },
+  { href: "/sandbox", label: "Sandbox" },
 ];
 
 export default function Nav() {

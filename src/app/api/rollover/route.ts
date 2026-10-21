@@ -1,25 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { buildSnapshot } from "@/lib/finance/snapshot";
-import { currentMonth, monthStart, shiftMonth } from "@/lib/finance/calculations";
-import type {
-  AccountHistory,
-  Budget,
-  Expense,
-  FlowAccount,
-  IncomeHistory,
-  IncomeItem,
-  Subscription,
-  SubscriptionHistory,
-} from "@/types/finance";
+import { ensureMonthlyRollover } from "@/lib/finance/rollover-server";
 
 /**
- * Idempotent month-rollover: if the previous (just-completed) month has no
- * snapshot yet, build it from the live tables and archive it. Safe to call on
- * every app load — it no-ops once the snapshot exists. Can also be triggered by
- * a scheduled job (e.g. Supabase pg_cron) on the 1st of each month.
+ * Idempotent month-rollover: ensures completed months have their closing
+ * balances and amounts archived into `account_history`, `income_history`,
+ * `subscription_history`, and `monthly_snapshots`, while advancing annual
+ * subscription accruals, resetting one-off monthly items, and re-resolving
+ * percentage budgets.
  */
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -28,67 +18,17 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // The completed month to archive = the month before the current one.
-  const completedMonth = shiftMonth(currentMonth(), -1);
-  const completedMonthStart = monthStart(completedMonth);
-
-  // Skip if already archived.
-  const { data: existing } = await supabase
-    .from("monthly_snapshots")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("month", completedMonthStart)
-    .maybeSingle();
-  if (existing) {
-    return NextResponse.json({ archived: false, month: completedMonth });
+  let body: { force?: boolean; targetCompletedMonth?: string } = {};
+  try {
+    body = await request.json();
+  } catch {
+    // Empty body on standard rollover calls.
   }
 
-  const [
-    { data: accounts },
-    { data: accountHistory },
-    { data: incomeItems },
-    { data: incomeHistory },
-    { data: subscriptions },
-    { data: subscriptionHistory },
-    { data: budgets },
-    { data: expenses },
-  ] = await Promise.all([
-    supabase.from("flow_accounts").select("*"),
-    supabase.from("account_history").select("*"),
-    supabase.from("income_items").select("*"),
-    supabase.from("income_history").select("*"),
-    supabase.from("subscriptions").select("*"),
-    supabase.from("subscription_history").select("*"),
-    supabase.from("budgets").select("*"),
-    supabase.from("expenses").select("*"),
-  ]);
-
-  const payload = buildSnapshot(
-    {
-      accounts: (accounts ?? []) as FlowAccount[],
-      accountHistory: (accountHistory ?? []) as AccountHistory[],
-      incomeItems: (incomeItems ?? []) as IncomeItem[],
-      incomeHistory: (incomeHistory ?? []) as IncomeHistory[],
-      subscriptions: (subscriptions ?? []) as Subscription[],
-      subscriptionHistory: (subscriptionHistory ?? []) as SubscriptionHistory[],
-      budgets: (budgets ?? []) as Budget[],
-      expenses: (expenses ?? []) as Expense[],
-    },
-    completedMonth
-  );
-
-  const { error } = await supabase.from("monthly_snapshots").insert({
-    user_id: user.id,
-    month: completedMonthStart,
-    accounts: payload.accounts,
-    income: payload.income,
-    payments: payload.payments,
-    budgets: payload.budgets,
-    totals: payload.totals,
+  const result = await ensureMonthlyRollover(supabase, user, {
+    force: body.force,
+    targetCompletedMonth: body.targetCompletedMonth,
   });
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-  return NextResponse.json({ archived: true, month: completedMonth });
+  return NextResponse.json(result);
 }

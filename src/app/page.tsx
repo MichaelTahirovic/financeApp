@@ -10,6 +10,7 @@ import {
   monthLabel,
   netWorth,
 } from "@/lib/finance/calculations";
+import { ensureMonthlyRollover } from "@/lib/finance/rollover-server";
 import type {
   Budget,
   Expense,
@@ -32,6 +33,8 @@ export default async function Home() {
   if (!user) {
     redirect("/login");
   }
+
+  await ensureMonthlyRollover(supabase, user);
 
   const month = currentMonth();
 
@@ -64,8 +67,8 @@ export default async function Home() {
   const subHist = (subscriptionHistory ?? []) as SubscriptionHistory[];
   const typeList = (purchaseTypes ?? []) as PurchaseType[];
 
-  const spend = monthlySpend(month, expenseList, subList, subHist);
-  const revenue = monthlyRevenue(month, incomeList, incomeHist);
+  const spend = monthlySpend(month, expenseList, subList, subHist, month);
+  const revenue = monthlyRevenue(month, incomeList, incomeHist, month);
   const worth = netWorth(accountList);
   const difference = monthlyNetWorthDifference(
     month,
@@ -73,7 +76,8 @@ export default async function Home() {
     subList,
     subHist,
     incomeList,
-    incomeHist
+    incomeHist,
+    month
   );
   const budgetRows = budgetSpend(month, budgetList, expenseList);
 

@@ -3,16 +3,25 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import type { FlowAccountKind } from "@/types/finance";
 
 interface HistoryRow {
   month: string; // YYYY-MM
   amount: string;
 }
 
-export default function AccountForm() {
+export default function AccountForm({
+  defaultKind = "receivable",
+  lockedKind = false,
+  onSuccess,
+}: {
+  defaultKind?: FlowAccountKind;
+  lockedKind?: boolean;
+  onSuccess?: () => void;
+}) {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [kind, setKind] = useState<"receivable" | "payable">("receivable");
+  const [kind, setKind] = useState<FlowAccountKind>(defaultKind);
   const [amount, setAmount] = useState("");
   const [isAnnual, setIsAnnual] = useState(false);
   const [annualAmount, setAnnualAmount] = useState("");
@@ -92,32 +101,35 @@ export default function AccountForm() {
     setAnnualAmount("");
     setHistory([]);
     setSaving(false);
+    onSuccess?.();
     router.refresh();
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
         <input
           type="text"
-          placeholder="Account name"
+          placeholder="Name"
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="flex-1 rounded border px-2 py-1.5"
+          className="flex-1 rounded border px-2 py-1 text-sm"
         />
-        <select
-          value={kind}
-          onChange={(e) => setKind(e.target.value as "receivable" | "payable")}
-          className="rounded border bg-white px-2 py-1.5 text-black"
-        >
-          <option value="receivable" className="text-black">
-            Receivable
-          </option>
-          <option value="payable" className="text-black">
-            Payable
-          </option>
-        </select>
+        {!lockedKind && (
+          <select
+            value={kind}
+            onChange={(e) => setKind(e.target.value as FlowAccountKind)}
+            className="rounded border bg-white px-2 py-1 text-sm text-black"
+          >
+            <option value="receivable" className="text-black">
+              Receivable
+            </option>
+            <option value="payable" className="text-black">
+              Payable
+            </option>
+          </select>
+        )}
         <input
           type="number"
           step="0.01"
@@ -125,7 +137,7 @@ export default function AccountForm() {
           required
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="w-32 rounded border px-2 py-1.5"
+          className="w-28 rounded border px-2 py-1 text-sm"
         />
       </div>
 
@@ -147,7 +159,7 @@ export default function AccountForm() {
               required
               value={annualAmount}
               onChange={(e) => setAnnualAmount(e.target.value)}
-              className="w-32 rounded border px-2 py-1.5"
+              className="w-28 rounded border px-2 py-1 text-sm"
             />
           )}
           {isAnnual && annualAmount && (
@@ -158,9 +170,9 @@ export default function AccountForm() {
         </div>
       )}
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Monthly history (optional)</span>
+          <span className="text-xs font-medium text-gray-600">History (optional)</span>
           <button
             type="button"
             onClick={addHistoryRow}
@@ -175,7 +187,7 @@ export default function AccountForm() {
               type="month"
               value={row.month}
               onChange={(e) => updateHistoryRow(i, "month", e.target.value)}
-              className="min-w-0 flex-1 rounded border px-2 py-1 dark:[color-scheme:dark]"
+              className="min-w-0 flex-1 rounded border px-2 py-0.5 text-xs dark:[color-scheme:dark]"
             />
             <input
               type="number"
@@ -183,7 +195,7 @@ export default function AccountForm() {
               placeholder="Amount"
               value={row.amount}
               onChange={(e) => updateHistoryRow(i, "amount", e.target.value)}
-              className="w-28 min-w-0 rounded border px-2 py-1"
+              className="w-24 min-w-0 rounded border px-2 py-0.5 text-xs"
             />
             <button
               type="button"
@@ -197,13 +209,13 @@ export default function AccountForm() {
         ))}
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-xs text-red-600">{error}</p>}
       <button
         type="submit"
         disabled={saving}
-        className="btn-primary px-3 py-2"
+        className="btn-primary px-3 py-1.5 text-sm"
       >
-        {saving ? "Saving..." : "Add Account"}
+        {saving ? "Saving..." : "Add"}
       </button>
     </form>
   );

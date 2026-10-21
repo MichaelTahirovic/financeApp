@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
+  annualAccrual,
   effectiveMonthlyAmount,
   formatCurrency,
   monthlyChange,
@@ -38,6 +39,7 @@ export default function AccountListItem({
 
   const entries = history.filter((h) => h.account_id === account.id);
   const monthly = effectiveMonthlyAmount(account);
+  const accrual = annualAccrual(account);
   // For payable accounts the delta is negated so that increasing debt reads negative.
   const change = monthlyChange(account, history, now) * (payable ? -1 : 1);
 
@@ -90,7 +92,7 @@ export default function AccountListItem({
             {payable && account.is_annual_subscription && (
               <span className="ml-1 text-xs text-gray-500">
                 (annual {formatCurrency(Number(account.annual_amount ?? 0))} →{" "}
-                {formatCurrency(monthly)}/mo)
+                {formatCurrency(accrual)}/mo)
               </span>
             )}
           </span>

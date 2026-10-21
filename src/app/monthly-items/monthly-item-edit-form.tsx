@@ -33,14 +33,15 @@ export default function MonthlyItemEditForm({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const sortedHistory = [...history].sort((a, b) => b.month.localeCompare(a.month));
   const [name, setName] = useState(item.name);
   const [amount, setAmount] = useState(String(item.amount));
   const [recurring, setRecurring] = useState(item.is_recurring);
   const [hidden, setHidden] = useState(item.hidden);
   const [showHideInfo, setShowHideInfo] = useState(false);
-  const [initialMonths] = useState<string[]>(history.map((h) => h.month.slice(0, 7)));
+  const [initialMonths] = useState<string[]>(sortedHistory.map((h) => h.month.slice(0, 7)));
   const [rows, setRows] = useState<HistoryDraft[]>(
-    history.map((h) => ({ month: h.month.slice(0, 7), amount: String(h.amount) }))
+    sortedHistory.map((h) => ({ month: h.month.slice(0, 7), amount: String(h.amount) }))
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -212,7 +213,9 @@ export default function MonthlyItemEditForm({
 
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-gray-600">History</span>
+          <span className="text-xs font-medium text-gray-600">
+            History (auto-rolled over &amp; editable)
+          </span>
           <button
             type="button"
             onClick={() => setRows([...rows, { month: "", amount: "" }])}
@@ -221,6 +224,11 @@ export default function MonthlyItemEditForm({
             + Add month
           </button>
         </div>
+        {rows.length === 0 && (
+          <p className="text-xs text-gray-400">
+            No previous months recorded yet. Months are added automatically at each monthly rollover, or click + Add month.
+          </p>
+        )}
         {rows.map((row, i) => (
           <div key={i} className="flex min-w-0 flex-wrap items-center gap-2">
             <input

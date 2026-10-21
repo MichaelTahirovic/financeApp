@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SectionBox } from "@/components/section-box";
 import {
@@ -10,6 +11,7 @@ import {
   receivableTotal,
   visibleAccounts,
 } from "@/lib/finance/calculations";
+import { ensureMonthlyRollover } from "@/lib/finance/rollover-server";
 import type { AccountHistory, FlowAccount } from "@/types/finance";
 import AccountListItem from "./account-list-item";
 import AccountHistoryTable from "./account-history-table";
@@ -22,6 +24,8 @@ export default async function AccountsPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  await ensureMonthlyRollover(supabase, user);
 
   const [{ data: accounts }, { data: history }] = await Promise.all([
     supabase.from("flow_accounts").select("*").order("created_at"),
@@ -45,10 +49,16 @@ export default async function AccountsPage() {
   const worth = netWorth(visible);
 
   return (
-    <main className="relative mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
-      <AddAccountToggle />
-
-      <h1 className="text-2xl font-semibold">Accounts</h1>
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-semibold">Accounts</h1>
+        <Link
+          href="/sandbox?tab=accounts"
+          className="rounded border px-3 py-1 text-xs font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800"
+        >
+          Simulate Monthly Rollover (Sandbox) →
+        </Link>
+      </div>
 
       <div className="rounded border border-black p-3 text-center dark:border-white">
         <p className="text-xs uppercase text-gray-500">
@@ -60,18 +70,26 @@ export default async function AccountsPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <SectionBox title="Accounts Receivable" total={receivableTotal(visible)}>
+        <SectionBox
+          title="Accounts Receivable"
+          total={receivableTotal(visible)}
+          headerActions={<AddAccountToggle title="Account Receivable" kind="receivable" />}
+        >
           <AccountList accounts={receivables} history={historyList} now={now} />
           <HiddenAccounts hidden={hiddenReceivables} />
         </SectionBox>
 
-        <SectionBox title="Accounts Payable" total={payableTotal(visible)}>
+        <SectionBox
+          title="Accounts Payable"
+          total={payableTotal(visible)}
+          headerActions={<AddAccountToggle title="Account Payable" kind="payable" />}
+        >
           <AccountList accounts={payables} history={historyList} now={now} payable />
           <HiddenAccounts hidden={hiddenPayables} />
         </SectionBox>
       </div>
 
-      <AccountHistoryTable accounts={visible} history={historyList} />
+      <AccountHistoryTable accounts={visible} history={historyList} now={now} />
     </main>
   );
 }

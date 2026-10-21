@@ -25,6 +25,7 @@ export default function AccountEditForm({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const sortedHistory = [...history].sort((a, b) => b.month.localeCompare(a.month));
   const [currentValue, setCurrentValue] = useState(String(account.amount));
   const [hidden, setHidden] = useState(account.hidden);
   const [isAnnual, setIsAnnual] = useState(account.is_annual_subscription);
@@ -32,9 +33,9 @@ export default function AccountEditForm({
     account.annual_amount != null ? String(account.annual_amount) : ""
   );
   // Months that exist in the DB when the editor opens — used to detect removals.
-  const [initialMonths] = useState<string[]>(history.map((h) => h.month.slice(0, 7)));
+  const [initialMonths] = useState<string[]>(sortedHistory.map((h) => h.month.slice(0, 7)));
   const [rows, setRows] = useState<HistoryDraft[]>(
-    history.map((h) => ({
+    sortedHistory.map((h) => ({
       month: h.month.slice(0, 7),
       amount: String(h.amount),
     }))
@@ -224,7 +225,9 @@ export default function AccountEditForm({
 
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-gray-600">Previous months</span>
+          <span className="text-xs font-medium text-gray-600">
+            Previous months (auto-rolled over &amp; editable)
+          </span>
           <button
             type="button"
             onClick={() => setRows([...rows, { month: "", amount: "" }])}
@@ -233,6 +236,11 @@ export default function AccountEditForm({
             + Add month
           </button>
         </div>
+        {rows.length === 0 && (
+          <p className="text-xs text-gray-400">
+            No previous months recorded yet. Months are added automatically at each monthly rollover, or click + Add month.
+          </p>
+        )}
         {rows.map((row, i) => (
           <div key={i} className="flex min-w-0 flex-wrap items-center gap-2">
             <input

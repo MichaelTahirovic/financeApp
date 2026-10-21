@@ -1,3 +1,8 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import {
   bySortOrder,
   currentMonth,
@@ -12,18 +17,32 @@ import type { AccountHistory, FlowAccount } from "@/types/finance";
  * Spreadsheet-style history table: accounts as rows (receivable first, then payable),
  * months as columns (oldest → newest, left to right). Payable amounts are displayed
  * as negative. Includes Total Receivable, Total Payable, and Total Net Worth rows.
- * Theme-aware for light/dark mode. Horizontally scrollable.
+ * Any cell can be clicked to inline-edit that month's balance (or the current month's
+ * balance).
  */
 export default function AccountHistoryTable({
   accounts,
   history,
+  now: nowProp,
+  onUpdateCell,
 }: {
   accounts: FlowAccount[];
   history: AccountHistory[];
+  now?: string;
+  onUpdateCell?: (
+    account: FlowAccount,
+    month: string,
+    amount: number | null
+  ) => void | Promise<void>;
 }) {
+  const router = useRouter();
+  const [editingCell, setEditingCell] = useState<{ accountId: string; month: string } | null>(null);
+  const [draftValue, setDraftValue] = useState("");
+  const [saving, setSaving] = useState(false);
+
   if (accounts.length === 0) return null;
 
-  const now = currentMonth();
+  const now = nowProp ?? currentMonth();
 
   // All months that have any history entry, plus the current month.
   const monthSet = new Set<string>(history.map((h) => h.month.slice(0, 7)));
@@ -59,6 +78,63 @@ export default function AccountHistoryTable({
     return list.reduce((sum, a) => sum + (rawValue(a, month) ?? 0), 0);
   }
 
+  function startEdit(account: FlowAccount, month: string) {
+    const raw = rawValue(account, month);
+    setEditingCell({ accountId: account.id, month });
+    setDraftValue(raw !== null ? String(raw) : "");
+  }
+
+  async function commitEdit(account: FlowAccount, month: string) {
+    setSaving(true);
+    const trimmed = draftValue.trim();
+    const parsed = trimmed === "" ? null : Number(trimmed);
+    const normalized = parsed !== null && !isNaN(parsed) ? Math.abs(parsed) : null;
+
+    if (onUpdateCell) {
+      await onUpdateCell(account, month, normalized);
+      setSaving(false);
+      setEditingCell(null);
+      return;
+    }
+
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setSaving(false);
+      setEditingCell(null);
+      return;
+    }
+
+    if (month === now) {
+      await supabase
+        .from("flow_accounts")
+        .update({ amount: normalized ?? 0 })
+        .eq("id", account.id);
+    } else if (normalized === null) {
+      await supabase
+        .from("account_history")
+        .delete()
+        .eq("account_id", account.id)
+        .eq("month", `${month}-01`);
+    } else {
+      await supabase.from("account_history").upsert(
+        {
+          user_id: user.id,
+          account_id: account.id,
+          month: `${month}-01`,
+          amount: normalized,
+        },
+        { onConflict: "account_id,month" }
+      );
+    }
+
+    setSaving(false);
+    setEditingCell(null);
+    router.refresh();
+  }
+
   const headerCell = "whitespace-nowrap px-3 py-2 text-right font-medium";
   const bodyCell = "whitespace-nowrap px-3 py-2 text-right";
   const stickyName = "sticky left-0 whitespace-nowrap bg-background px-3 py-2";
@@ -66,7 +142,10 @@ export default function AccountHistoryTable({
 
   return (
     <section className="rounded border">
-      <h2 className="border-b px-4 py-2 text-lg font-medium">Account History</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2">
+        <h2 className="text-lg font-medium">Account History</h2>
+        <span className="text-xs text-gray-500">Click any cell to edit its monthly balance</span>
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
@@ -91,6 +170,13 @@ export default function AccountHistoryTable({
                 months={months}
                 now={now}
                 displayValue={displayValue}
+                editingCell={editingCell}
+                draftValue={draftValue}
+                saving={saving}
+                onStartEdit={startEdit}
+                onDraftChange={setDraftValue}
+                onCommit={commitEdit}
+                onCancel={() => setEditingCell(null)}
                 stickyName={stickyName}
                 bodyCell={bodyCell}
                 currentCol={currentCol}
@@ -115,6 +201,13 @@ export default function AccountHistoryTable({
                 months={months}
                 now={now}
                 displayValue={displayValue}
+                editingCell={editingCell}
+                draftValue={draftValue}
+                saving={saving}
+                onStartEdit={startEdit}
+                onDraftChange={setDraftValue}
+                onCommit={commitEdit}
+                onCancel={() => setEditingCell(null)}
                 stickyName={stickyName}
                 bodyCell={bodyCell}
                 currentCol={currentCol}
@@ -154,6 +247,13 @@ function AccountRow({
   months,
   now,
   displayValue,
+  editingCell,
+  draftValue,
+  saving,
+  onStartEdit,
+  onDraftChange,
+  onCommit,
+  onCancel,
   stickyName,
   bodyCell,
   currentCol,
@@ -162,6 +262,13 @@ function AccountRow({
   months: string[];
   now: string;
   displayValue: (account: FlowAccount, month: string) => number | null;
+  editingCell: { accountId: string; month: string } | null;
+  draftValue: string;
+  saving: boolean;
+  onStartEdit: (account: FlowAccount, month: string) => void;
+  onDraftChange: (v: string) => void;
+  onCommit: (account: FlowAccount, month: string) => void;
+  onCancel: () => void;
   stickyName: string;
   bodyCell: string;
   currentCol: string;
@@ -179,11 +286,19 @@ function AccountRow({
         </span>
       </td>
       {months.map((m) => {
+        const isEditing =
+          editingCell?.accountId === account.id && editingCell?.month === m;
         const value = displayValue(account, m);
         return (
           <td
             key={m}
+            onClick={() => {
+              if (!isEditing) onStartEdit(account, m);
+            }}
+            title="Click to edit balance for this month"
             className={`${bodyCell} ${m === now ? currentCol : ""} ${
+              !isEditing ? "cursor-pointer hover:bg-neutral-100/70 dark:hover:bg-neutral-800/70" : ""
+            } ${
               value === null
                 ? "text-neutral-300 dark:text-neutral-600"
                 : value < 0
@@ -191,7 +306,47 @@ function AccountRow({
                   : ""
             }`}
           >
-            {value === null ? "—" : formatCurrency(value)}
+            {isEditing ? (
+              <span
+                className="inline-flex items-center justify-end gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="number"
+                  step="0.01"
+                  autoFocus
+                  disabled={saving}
+                  value={draftValue}
+                  placeholder="0.00"
+                  onChange={(e) => onDraftChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") onCommit(account, m);
+                    if (e.key === "Escape") onCancel();
+                  }}
+                  className="w-24 rounded border bg-background px-1.5 py-0.5 text-right text-xs text-foreground"
+                />
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => onCommit(account, m)}
+                  className="rounded border bg-black px-1.5 py-0.5 text-xs text-white dark:bg-white dark:text-black"
+                >
+                  ✓
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={onCancel}
+                  className="rounded border px-1.5 py-0.5 text-xs text-foreground"
+                >
+                  ×
+                </button>
+              </span>
+            ) : value === null ? (
+              "—"
+            ) : (
+              formatCurrency(value)
+            )}
           </td>
         );
       })}

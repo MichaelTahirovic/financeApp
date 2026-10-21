@@ -6,6 +6,7 @@ import {
   formatCurrency,
   monthLabel,
 } from "@/lib/finance/calculations";
+import { ensureMonthlyRollover } from "@/lib/finance/rollover-server";
 import type { Budget, Expense, PurchaseType } from "@/types/finance";
 import CardAddToggle from "@/components/card-add-toggle";
 import BudgetForm from "./budget-form";
@@ -21,22 +22,27 @@ export default async function BudgetingPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  await ensureMonthlyRollover(supabase, user);
+
   const month = currentMonth();
 
-  const [{ data: budgets }, { data: expenses }, { data: purchaseTypes }, { data: incomeItems }, { data: incomeHistory }, { data: subscriptions }, { data: subscriptionHistory }] =
-    await Promise.all([
-      supabase.from("budgets").select("*").order("name"),
-      supabase
-        .from("expenses")
-        .select("*")
-        .order("occurred_on", { ascending: false })
-        .order("occurred_time", { ascending: false }),
-      supabase.from("purchase_types").select("*").order("created_at"),
-      supabase.from("income_items").select("*"),
-      supabase.from("income_history").select("*"),
-      supabase.from("subscriptions").select("*"),
-      supabase.from("subscription_history").select("*"),
-    ]);
+  const [
+    { data: budgets },
+    { data: expenses },
+    { data: purchaseTypes },
+    { data: incomeItems },
+    { data: subscriptions },
+  ] = await Promise.all([
+    supabase.from("budgets").select("*").order("name"),
+    supabase
+      .from("expenses")
+      .select("*")
+      .order("occurred_on", { ascending: false })
+      .order("occurred_time", { ascending: false }),
+    supabase.from("purchase_types").select("*").order("created_at"),
+    supabase.from("income_items").select("*"),
+    supabase.from("subscriptions").select("*"),
+  ]);
 
   const budgetList = (budgets ?? []) as Budget[];
   const expenseList = (expenses ?? []) as Expense[];

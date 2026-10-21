@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
+  currentMonth,
   forecastNextMonth,
   formatCurrency,
   monthlySpend,
   monthLabel,
 } from "@/lib/finance/calculations";
+import { ensureMonthlyRollover } from "@/lib/finance/rollover-server";
 import type { Expense, Subscription, SubscriptionHistory } from "@/types/finance";
 
 export default async function ForecastPage() {
@@ -14,6 +16,8 @@ export default async function ForecastPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  await ensureMonthlyRollover(supabase, user);
 
   const [{ data: expenses }, { data: subscriptions }, { data: subscriptionHistory }] =
     await Promise.all([
@@ -25,8 +29,9 @@ export default async function ForecastPage() {
   const expenseList = (expenses ?? []) as Expense[];
   const subList = (subscriptions ?? []) as Subscription[];
   const subHist = (subscriptionHistory ?? []) as SubscriptionHistory[];
+  const now = currentMonth();
 
-  const forecast = forecastNextMonth(expenseList, subList, subHist);
+  const forecast = forecastNextMonth(expenseList, subList, subHist, now);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
@@ -51,7 +56,7 @@ export default async function ForecastPage() {
             <li key={m} className="flex justify-between px-4 py-2">
               <span>{monthLabel(m)}</span>
               <span>
-                {formatCurrency(monthlySpend(m, expenseList, subList, subHist))}
+                {formatCurrency(monthlySpend(m, expenseList, subList, subHist, now))}
               </span>
             </li>
           ))}

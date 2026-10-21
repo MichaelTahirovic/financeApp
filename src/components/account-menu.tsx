@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 /**
- * Account symbol that opens a dropdown: Preferences, Export, Sign Out.
+ * Account symbol that opens a dropdown: Preferences, Export, Sandbox, Sign Out.
  */
 export default function AccountMenu() {
   const router = useRouter();
@@ -65,6 +65,13 @@ export default function AccountMenu() {
             className="block px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800"
           >
             Export
+          </Link>
+          <Link
+            href="/sandbox"
+            onClick={() => setOpen(false)}
+            className="block px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          >
+            Rollover Sandbox
           </Link>
           <button
             type="button"

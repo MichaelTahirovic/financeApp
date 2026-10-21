@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { currentMonth as getCurrentMonth } from "@/lib/finance/calculations";
+import { ensureMonthlyRollover } from "@/lib/finance/rollover-server";
 import type {
   AccountHistory,
   Budget,
@@ -35,6 +37,8 @@ export default async function ExportPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  await ensureMonthlyRollover(supabase, user);
+
   const [
     { data: accounts },
     { data: accountHistory },
@@ -61,7 +65,7 @@ export default async function ExportPage() {
       .order("occurred_time", { ascending: false }),
   ]);
 
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = getCurrentMonth();
   const allExpenses = (expenses ?? []) as Expense[];
 
   const data: ExportData = {

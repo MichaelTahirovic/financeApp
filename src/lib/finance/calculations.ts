@@ -51,26 +51,21 @@ export function annualAccrual(account: FlowAccount): number {
   return Number(account.annual_amount) / 12;
 }
 
-/** Whole months elapsed from a YYYY-MM month to now (0 for the current month). */
-export function monthsSince(month: string): number {
+/** Whole months elapsed from a YYYY-MM month to a reference YYYY-MM month (defaults to currentMonth()). */
+export function monthsSince(month: string, now: string = currentMonth()): number {
   const [y, m] = month.split("-").map(Number);
-  const now = new Date();
-  return (now.getFullYear() - y) * 12 + (now.getMonth() + 1 - m);
+  const [ny, nm] = now.split("-").map(Number);
+  return (ny - y) * 12 + (nm - m);
 }
 
 /**
  * Effective current amount for a flow account.
- * Annual-subscription payables accrue their 1/12 monthly amount on top of the
- * starting value (the entered current amount, or 0), compounding by the number
- * of months since the account was created. Everything else is just its amount.
+ * `flow_accounts.amount` stores the current balance; for annual-subscription
+ * payables, monthly rollover automatically accrues `annual_amount / 12` into
+ * `amount` each month while keeping `amount` directly editable.
  */
 export function effectiveMonthlyAmount(account: FlowAccount): number {
-  if (account.kind === "payable" && account.is_annual_subscription) {
-    const start = Number(account.amount) || 0;
-    const monthsElapsed = Math.max(0, monthsSince(account.created_at.slice(0, 7)));
-    return start + annualAccrual(account) * monthsElapsed;
-  }
-  return Number(account.amount);
+  return Number(account.amount) || 0;
 }
 
 /** Accounts that are not hidden — shown in cards, totals, and the history table. */
@@ -88,7 +83,7 @@ export function bySortOrder(accounts: FlowAccount[]): FlowAccount[] {
 
 export function receivableTotal(accounts: FlowAccount[]): number {
   return accounts
-    .filter((a) => a.kind === "receivable")
+    .filter((a) => !a.hidden && a.kind === "receivable")
     .reduce((sum, a) => sum + Number(a.amount), 0);
 }
 
@@ -118,10 +113,10 @@ export function monthlyChange(
   return effectiveMonthlyAmount(account) - Number(priorEntry?.amount ?? 0);
 }
 
-/** Accounts Payable total, counting annual subscriptions at their monthly accrual. */
+/** Accounts Payable total, counting only visible payable accounts. */
 export function payableTotal(accounts: FlowAccount[]): number {
   return accounts
-    .filter((a) => a.kind === "payable")
+    .filter((a) => !a.hidden && a.kind === "payable")
     .reduce((sum, a) => sum + effectiveMonthlyAmount(a), 0);
 }
 
@@ -138,24 +133,36 @@ export function debt(accounts: FlowAccount[]): number {
 /**
  * Total spend for a month: logged purchases in that month plus every
  * subscription (recurring and one-off). For past months, recorded history
- * entries override their subscription's amount.
+ * entries override their subscription's amount, and non-recurring items
+ * without history for that past month do not carry backward.
  */
 export function monthlySpend(
   month: string,
   expenses: Expense[],
   subscriptions: Subscription[],
-  subscriptionHistory: SubscriptionHistory[]
+  subscriptionHistory: SubscriptionHistory[],
+  now: string = currentMonth()
 ): number {
   const purchaseTotal = expenses
     .filter((e) => inMonth(e.occurred_on, month))
     .reduce((sum, e) => sum + Number(e.amount), 0);
 
-  const historyForMonth = subscriptionHistory.filter((h) => inMonth(h.month, month));
+  const visibleSubs = subscriptions.filter((s) => !s.hidden);
+  const visibleIds = new Set(visibleSubs.map((s) => s.id));
+  const historyForMonth = subscriptionHistory.filter(
+    (h) => inMonth(h.month, month) && visibleIds.has(h.subscription_id)
+  );
   const withHistory = new Set(historyForMonth.map((h) => h.subscription_id));
+
+  const isCurrent = month === now;
   const subscriptionTotal =
     historyForMonth.reduce((sum, h) => sum + Number(h.amount), 0) +
-    subscriptions
-      .filter((s) => !s.hidden && !withHistory.has(s.id))
+    visibleSubs
+      .filter(
+        (s) =>
+          !withHistory.has(s.id) &&
+          (isCurrent || (s.is_recurring && s.created_at.slice(0, 7) <= month))
+      )
       .reduce((sum, s) => sum + Number(s.amount), 0);
 
   return purchaseTotal + subscriptionTotal;
@@ -168,15 +175,25 @@ export function monthlySpend(
 export function monthlyRevenue(
   month: string,
   incomeItems: IncomeItem[],
-  incomeHistory: IncomeHistory[]
+  incomeHistory: IncomeHistory[],
+  now: string = currentMonth()
 ): number {
-  const historyForMonth = incomeHistory.filter((h) => inMonth(h.month, month));
+  const visibleIncome = incomeItems.filter((i) => !i.hidden);
+  const visibleIds = new Set(visibleIncome.map((i) => i.id));
+  const historyForMonth = incomeHistory.filter(
+    (h) => inMonth(h.month, month) && visibleIds.has(h.income_id)
+  );
   const withHistory = new Set(historyForMonth.map((h) => h.income_id));
 
+  const isCurrent = month === now;
   return (
     historyForMonth.reduce((sum, h) => sum + Number(h.amount), 0) +
-    incomeItems
-      .filter((i) => !i.hidden && !withHistory.has(i.id))
+    visibleIncome
+      .filter(
+        (i) =>
+          !withHistory.has(i.id) &&
+          (isCurrent || (i.is_recurring && i.created_at.slice(0, 7) <= month))
+      )
       .reduce((sum, i) => sum + Number(i.amount), 0)
   );
 }
@@ -188,11 +205,12 @@ export function monthlyNetWorthDifference(
   subscriptions: Subscription[],
   subscriptionHistory: SubscriptionHistory[],
   incomeItems: IncomeItem[],
-  incomeHistory: IncomeHistory[]
+  incomeHistory: IncomeHistory[],
+  now: string = currentMonth()
 ): number {
   return (
-    monthlyRevenue(month, incomeItems, incomeHistory) -
-    monthlySpend(month, expenses, subscriptions, subscriptionHistory)
+    monthlyRevenue(month, incomeItems, incomeHistory, now) -
+    monthlySpend(month, expenses, subscriptions, subscriptionHistory, now)
   );
 }
 
@@ -293,13 +311,13 @@ export interface ForecastResult {
 export function forecastNextMonth(
   expenses: Expense[],
   subscriptions: Subscription[],
-  subscriptionHistory: SubscriptionHistory[]
+  subscriptionHistory: SubscriptionHistory[],
+  now: string = currentMonth()
 ): ForecastResult {
-  const now = currentMonth();
   const targetMonth = shiftMonth(now, 1);
 
   const spendFor = (month: string) =>
-    monthlySpend(month, expenses, subscriptions, subscriptionHistory);
+    monthlySpend(month, expenses, subscriptions, subscriptionHistory, now);
 
   const candidates = [shiftMonth(now, -1), shiftMonth(now, -2), shiftMonth(now, -3)];
   const totals = candidates.map((m) => ({ month: m, total: spendFor(m) }));

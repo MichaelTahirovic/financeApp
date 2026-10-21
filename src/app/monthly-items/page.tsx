@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SectionBox } from "@/components/section-box";
-import { formatCurrency } from "@/lib/finance/calculations";
+import { currentMonth, formatCurrency } from "@/lib/finance/calculations";
+import { ensureMonthlyRollover } from "@/lib/finance/rollover-server";
 import type {
   IncomeHistory,
   IncomeItem,
@@ -20,6 +22,8 @@ export default async function MonthlyItemsPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  await ensureMonthlyRollover(supabase, user);
 
   const [
     { data: incomeItems },
@@ -46,10 +50,19 @@ export default async function MonthlyItemsPage() {
   const incomeTotal = incomeList.reduce((sum, i) => sum + Number(i.amount), 0);
   const paymentTotal = paymentList.reduce((sum, s) => sum + Number(s.amount), 0);
   const cashFlow = incomeTotal - paymentTotal;
+  const now = currentMonth();
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
-      <h1 className="text-2xl font-semibold">Monthly Items</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-semibold">Monthly Items</h1>
+        <Link
+          href="/sandbox?tab=monthly-items"
+          className="rounded border px-3 py-1 text-xs font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800"
+        >
+          Simulate Monthly Rollover (Sandbox) →
+        </Link>
+      </div>
 
       <div className="rounded border border-black p-3 text-center dark:border-white">
         <p className="text-xs uppercase text-gray-500">Available Monthly Cash Flow</p>
@@ -124,6 +137,7 @@ export default async function MonthlyItemsPage() {
         incomeHistory={incomeHist}
         subscriptions={paymentList}
         subscriptionHistory={paymentHist}
+        now={now}
       />
     </main>
   );
